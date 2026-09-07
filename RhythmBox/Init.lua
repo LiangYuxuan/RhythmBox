@@ -1,0 +1,3 @@
+local addonName, Engine = ...
+
+_G[addonName] = Engine
