@@ -1,0 +1,28 @@
+name: pr-build
+
+on:
+  pull_request:
+  merge_group:
+
+jobs:
+  pr-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run wowlua-ls Check
+        run: |
+          wget https://github.com/TradeSkillMaster/wowlua-ls/releases/latest/download/wowlua_ls-x86_64-unknown-linux-gnu -O /wowlua_ls
+          chmod +x /wowlua_ls
+          /wowlua_ls check . --severity hint
+
+      - name: Create Retail Package
+        uses: BigWigsMods/packager@v2
+        with:
+          args: "-d -z"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pull-request-${{ github.event.number }}-${{ github.sha }}
+          path: .release/
