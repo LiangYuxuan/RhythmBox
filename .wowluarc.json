@@ -1,0 +1,27 @@
+{
+    "ignore": ["RhythmBox/Libs/"],
+    "diagnostics": {
+        "enable": [
+            "need-check-nil",
+            "nil-index",
+            "invalid-op",
+            "unknown-callback-event",
+            "unused-function",
+            "unused-vararg",
+            "incomplete-signature-doc",
+            "missing-param-annotation",
+            "missing-return-annotation",
+            "redundant-or",
+            "redundant-and",
+            "redundant-condition",
+            "implicit-nil-return",
+            "unknown-param-type",
+            "unknown-return-type",
+            "unknown-local-type",
+            "unknown-field-type"
+        ]
+    },
+    "hint": {
+        "enable": false
+    }
+}
