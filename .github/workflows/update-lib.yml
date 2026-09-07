@@ -1,0 +1,28 @@
+name: update-library
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: 0 1 * * *
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: BigWigsMods/packager@v2
+        with:
+          args: "-c -d -z"
+
+      - run: cp -a .release/RhythmBox/Libs/* RhythmBox/Libs/
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          add-paths: "RhythmBox/Libs/*"
+          title: "build: update library"
+          commit-message: "build: update library"
+          branch: update-library
+          delete-branch: true
