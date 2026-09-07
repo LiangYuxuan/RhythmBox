@@ -1,0 +1,38 @@
+package-as: RhythmBox
+
+externals:
+  RhythmBox/Libs/LibStub: https://repos.curseforge.com/wow/libstub/trunk
+  RhythmBox/Libs/CallbackHandler-1.0: https://repos.curseforge.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+  RhythmBox/Libs/AceAddon-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceAddon-3.0
+  RhythmBox/Libs/AceEvent-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceEvent-3.0
+  RhythmBox/Libs/AceTimer-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceTimer-3.0
+  RhythmBox/Libs/AceBucket-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceBucket-3.0
+  RhythmBox/Libs/AceHook-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceHook-3.0
+  RhythmBox/Libs/AceDB-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceDB-3.0
+  RhythmBox/Libs/AceDBOptions-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceDBOptions-3.0
+  RhythmBox/Libs/AceLocale-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceLocale-3.0
+  RhythmBox/Libs/AceConsole-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceConsole-3.0
+  RhythmBox/Libs/AceGUI-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceGUI-3.0
+  RhythmBox/Libs/AceConfig-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceConfig-3.0
+  RhythmBox/Libs/AceComm-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceComm-3.0
+  RhythmBox/Libs/AceTab-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceTab-3.0
+  RhythmBox/Libs/AceSerializer-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceSerializer-3.0
+  RhythmBox/Libs/LibSharedMedia-3.0: https://repos.curseforge.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
+  RhythmBox/Libs/AceGUI-3.0-SharedMediaWidgets: https://repos.curseforge.com/wow/ace-gui-3-0-shared-media-widgets/trunk/AceGUI-3.0-SharedMediaWidgets
+  RhythmBox/Libs/TaintLess:
+    url: https://www.townlong-yak.com/addons.git/taintless
+    commit: default
+  RhythmBox/Libs/LibDataBroker: https://github.com/tekkub/libdatabroker-1-1
+  RhythmBox/Libs/LibDBIcon-1.0: https://repos.curseforge.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
+  RhythmBox/Libs/LibKeystone: https://github.com/BigWigsMods/LibKeystone.git/LibKeystone
+  RhythmBox/Libs/LibObjectiveProgress-1.0: https://github.com/MMOSimca/LibObjectiveProgress-1.0
+  RhythmBox/Libs/LibOpenRaid: https://github.com/Tercioo/Open-Raid-Library
+  RhythmBox/Libs/LibRangeCheck-3.0: https://github.com/WeakAuras/LibRangeCheck-3.0.git/LibRangeCheck-3.0
+  RhythmBox/Libs/LibRealmInfo: https://github.com/janekjl/LibRealmInfo
+
+ignore:
+  - Builder
+  - README.md
+
+move-folders:
+  RhythmBox/RhythmBox: RhythmBox
