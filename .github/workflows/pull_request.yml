@@ -11,10 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Run wowlua-ls Check
+      - name: Download wowlua-ls
         run: |
           wget https://github.com/TradeSkillMaster/wowlua-ls/releases/latest/download/wowlua_ls-x86_64-unknown-linux-gnu -O ./wowlua_ls
           chmod +x ./wowlua_ls
+
+      - name: Run wowlua-ls Check
+        run: |
           ./wowlua_ls check . --severity hint
 
       - name: Create Retail Package
