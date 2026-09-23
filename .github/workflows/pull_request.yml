@@ -20,6 +20,11 @@ jobs:
         run: |
           ./wowlua_ls check . --severity hint
 
+      - name: Find globals
+        uses: LiangYuxuan/action-findglobals@master
+        with:
+          find-args: "! -path \"./RhythmBox/Libs/*\""
+
       - name: Create Retail Package
         uses: BigWigsMods/packager@v2
         with:
