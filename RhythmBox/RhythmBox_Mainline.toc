@@ -2,6 +2,7 @@
 ## Author: Rhythm
 ## Version: v12.1.0
 ## Title: Rhythm Box
+## SavedVariables: RhythmBoxDB
 ## IconTexture: Interface\AddOns\RhythmBox\Media\Icon.png
 
 Libs\Load_Libs.xml
@@ -9,3 +10,5 @@ Libs\Load_Libs.xml
 Init.lua
 
 Media\Media.lua
+
+Core\Load_Core.xml
