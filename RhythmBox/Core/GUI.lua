@@ -70,10 +70,8 @@ local breakpoints = {
 local formatter = C_StringUtil.CreateNumericRuleFormatter()
 formatter:SetBreakpoints(breakpoints)
 
----@alias RhythmBoxTemplate "Default" ｜ "Transparent"
-
 ---@param frame Frame & BackdropTemplate
----@param template RhythmBoxTemplate?
+---@param template "Default" | "Transparent" | nil
 function R:SetupFrame(frame, template)
     frame:SetBackdrop(backdropInfo)
 
@@ -87,9 +85,11 @@ function R:SetupFrame(frame, template)
 end
 
 ---@param button Button & BackdropTemplate
----@param template RhythmBoxTemplate?
+---@param template "NoBackdrop" | "Default" | "Transparent" | nil
 function R:SetupButton(button, template)
-    self:SetupFrame(button, template)
+    if template ~= 'NoBackdrop' then
+        self:SetupFrame(button, template)
+    end
 
     button:SetHighlightTexture(whiteTexture)
 
@@ -132,11 +132,9 @@ function R:SetupFont(font, fontSize, fontStyle, useShadow)
     end
 end
 
----@alias RhythmBoxCooldownType "Default" | "Charge" | "LossOfControl"
-
 ---@param cooldown Cooldown & CooldownFrameTemplate
 ---@param parent Frame
----@param cooldownType RhythmBoxCooldownType?
+---@param cooldownType "Default" | "Charge" | "LossOfControl" | nil
 function R:SetupCooldown(cooldown, parent, cooldownType)
     cooldown:SetPoint('TOPLEFT', parent, 'TOPLEFT', 1, -1)
     cooldown:SetPoint('BOTTOMRIGHT', parent, 'BOTTOMRIGHT', -1, 1)
