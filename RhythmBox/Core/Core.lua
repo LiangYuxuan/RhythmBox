@@ -29,6 +29,7 @@ function R:OnProfileUpdated()
 end
 
 function R:OnEnable()
+    self:APIOnEnable()
     self:OptionsOnEnable()
 end
 
