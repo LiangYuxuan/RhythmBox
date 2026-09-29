@@ -70,7 +70,7 @@ local breakpoints = {
 local formatter = C_StringUtil.CreateNumericRuleFormatter()
 formatter:SetBreakpoints(breakpoints)
 
----@alias RhythmBoxTemplate 'Default' ｜ 'Transparent'
+---@alias RhythmBoxTemplate "Default" ｜ "Transparent"
 
 ---@param frame Frame & BackdropTemplate
 ---@param template RhythmBoxTemplate?
@@ -132,7 +132,7 @@ function R:SetupFont(font, fontSize, fontStyle, useShadow)
     end
 end
 
----@alias RhythmBoxCooldownType 'Default' | 'Charge' | 'LossOfControl'
+---@alias RhythmBoxCooldownType "Default" | "Charge" | "LossOfControl"
 
 ---@param cooldown Cooldown & CooldownFrameTemplate
 ---@param parent Frame

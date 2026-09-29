@@ -11,5 +11,5 @@ function LibKeystone:Register(myUniqueTable, callback) end
 ---@param myUniqueTable table
 function LibKeystone:Unregister(myUniqueTable) end
 
----@param channel 'PARTY' | 'GUILD'
+---@param channel "PARTY" | "GUILD"
 function LibKeystone:Request(channel) end
