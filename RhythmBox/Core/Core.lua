@@ -17,6 +17,11 @@ R.playerFullName = UnitName('player') .. '-' .. GetRealmName()
 ---@type string
 R.playerGUID = UnitGUID('player')
 
+R.HiddenFrame = CreateFrame('Frame', nil, _G.UIParent)
+R.HiddenFrame:SetPoint('BOTTOM')
+R.HiddenFrame:SetSize(1, 1)
+R.HiddenFrame:Hide()
+
 function R:OnProfileUpdated()
     self.db = self.data.profile
 
@@ -36,4 +41,6 @@ function R:OnInitialize()
 
     ---@type RhythmBoxProfile
     self.db = self.data.profile
+
+    self:APIOnInitialize()
 end

@@ -5,5 +5,9 @@
                         https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_SharedXML/UI.xsd"
 >
 	<Script file='Core.lua'/>
+
+	<Script file='API.lua'/>
+	<Script file='GUI.lua'/>
+
 	<Script file='Options.lua'/>
 </Ui>
