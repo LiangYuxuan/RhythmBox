@@ -1,5 +1,10 @@
 local addonName, Engine = ...
 ---@class RhythmBoxCore
+---@field Name string
+---@field playerGUID string
+---@field playerLocalizedClass string
+---@field playerClass string
+---@field playerClassID number
 local R = Engine.Core
 local AceDB = Engine.Libs.AceDB
 
@@ -16,6 +21,8 @@ R.Title = '|cFF70B8FFRhythm Box|r'
 R.playerFullName = UnitName('player') .. '-' .. GetRealmName()
 ---@type string
 R.playerGUID = UnitGUID('player')
+R.playerFaction, R.playerLocalizedFaction = UnitFactionGroup('player')
+R.playerLocalizedClass, R.playerClass, R.playerClassID = UnitClass('player')
 
 R.HiddenFrame = CreateFrame('Frame', nil, _G.UIParent)
 R.HiddenFrame:SetPoint('BOTTOM')
