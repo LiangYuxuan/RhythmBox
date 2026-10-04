@@ -72,7 +72,7 @@ formatter:SetBreakpoints(breakpoints)
 
 ---@param frame Frame & BackdropTemplate
 ---@param template "Default" | "Transparent" | nil
-function R:SetupFrame(frame, template)
+function R:SetupBackdrop(frame, template)
     frame:SetBackdrop(backdropInfo)
 
     if template == 'Transparent' then
@@ -84,13 +84,8 @@ function R:SetupFrame(frame, template)
     frame:SetBackdropBorderColor(0, 0, 0, 1)
 end
 
----@param button Button & BackdropTemplate
----@param template "NoBackdrop" | "Default" | "Transparent" | nil
-function R:SetupButton(button, template)
-    if template ~= 'NoBackdrop' then
-        self:SetupFrame(button, template)
-    end
-
+---@param button Button
+function R:SetupButton(button)
     button:SetHighlightTexture(whiteTexture)
 
     local hover = button:GetHighlightTexture()
