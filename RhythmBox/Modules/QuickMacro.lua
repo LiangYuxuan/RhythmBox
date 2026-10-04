@@ -48,6 +48,7 @@ local CooldownFrame_Set = CooldownFrame_Set
 local Item = Item
 local MenuUtil_CreateContextMenu = MenuUtil.CreateContextMenu
 local RegisterStateDriver = RegisterStateDriver
+local SecureHandlerSetFrameRef = SecureHandlerSetFrameRef
 local tContains = tContains
 
 ---@class QuickMacroItemDisplay
