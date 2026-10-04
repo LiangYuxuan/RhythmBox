@@ -1,0 +1,1966 @@
+local _, Engine = ...
+local R = Engine.Core
+---@class RhythmBoxQuickMacro: AceAddon-3.0 & AceEvent-3.0
+local QM = R:NewModule('QuickMacro', 'AceEvent-3.0')
+
+-- Lua functions
+local _G = _G
+local date, format, gsub, ipairs, pairs, tinsert = date, format, gsub, ipairs, pairs, tinsert
+local random, select, sort, tostring, wipe, unpack = random, select, sort, tostring, wipe, unpack
+
+-- WoW API / Variables
+local C_AddOns_LoadAddOn = C_AddOns.LoadAddOn
+local C_Item_GetItemCooldown = C_Item.GetItemCooldown
+local C_Item_GetItemCount = C_Item.GetItemCount
+local C_Item_GetItemIconByID = C_Item.GetItemIconByID
+local C_Item_GetItemInfoInstant = C_Item.GetItemInfoInstant
+local C_Item_GetItemNameByID = C_Item.GetItemNameByID
+local C_Item_GetItemQualityByID = C_Item.GetItemQualityByID
+local C_Item_GetItemQualityColor = C_Item.GetItemQualityColor
+local C_Item_IsItemInRange = C_Item.IsItemInRange
+local C_MountJournal_GetMountInfoByID = C_MountJournal.GetMountInfoByID
+local C_MountJournal_SummonByID = C_MountJournal.SummonByID
+local C_Spell_GetSpellChargeDuration = C_Spell.GetSpellChargeDuration
+local C_Spell_GetSpellCooldownDuration = C_Spell.GetSpellCooldownDuration
+local C_Spell_GetSpellName = C_Spell.GetSpellName
+local C_Spell_GetSpellTexture = C_Spell.GetSpellTexture
+local C_Spell_IsSpellInRange = C_Spell.IsSpellInRange
+local C_Spell_IsSpellUsable = C_Spell.IsSpellUsable
+local C_SpellBook_FindSpellOverrideByID = C_SpellBook.FindSpellOverrideByID
+local C_TradeSkillUI_GetItemReagentQualityInfo = C_TradeSkillUI.GetItemReagentQualityInfo
+local C_TradeSkillUI_GetProfessionInfoBySkillLineID = C_TradeSkillUI.GetProfessionInfoBySkillLineID
+local C_ZoneAbility_GetActiveAbilities = C_ZoneAbility.GetActiveAbilities
+local CreateFrame = CreateFrame
+local GetBindingKey = GetBindingKey
+local GetInstanceInfo = GetInstanceInfo
+local GetInventoryItemID = GetInventoryItemID
+local GetServerTime = GetServerTime
+local GetTime = GetTime
+local InCombatLockdown = InCombatLockdown
+local IsAltKeyDown = IsAltKeyDown
+local IsControlKeyDown = IsControlKeyDown
+local IsShiftKeyDown = IsShiftKeyDown
+local PlayerHasToy = PlayerHasToy
+local UnitCanAttack = UnitCanAttack
+
+local CooldownFrame_Clear = CooldownFrame_Clear
+local CooldownFrame_Set = CooldownFrame_Set
+local Item = Item
+local MenuUtil_CreateContextMenu = MenuUtil.CreateContextMenu
+local RegisterStateDriver = RegisterStateDriver
+local tContains = tContains
+
+---@class QuickMacroItemDisplay
+---@field ctrl number?
+---@field shift number?
+---@field alt number?
+---@field none number?
+---@field ctrlIsToy boolean?
+---@field shiftIsToy boolean?
+---@field altIsToy boolean?
+---@field noneIsToy boolean?
+
+---@class QuickMacroButton: Button & SecureActionButtonTemplate & BackdropTemplate
+---@field icon Texture
+---@field qualityOverlay Texture
+---@field count FontString
+---@field bind FontString
+---@field cooldown Cooldown & CooldownFrameTemplate
+---@field chargeCooldown Cooldown & CooldownFrameTemplate
+---@field initialized boolean?
+---@field itemDisplay QuickMacroItemDisplay
+---@field displayType "spell" | "mount" | "item" | "toy" | nil
+---@field itemID number?
+---@field spellID number?
+---@field tooltip string?
+
+---@class QuickMacroData
+---@field name string
+---@field index number
+---@field updateEvent table<string, true>
+---@field updateFunc fun(button: QuickMacroButton, data: QuickMacroData, inCombat: boolean): boolean
+---@field displayFunc fun(button: QuickMacroButton, data: QuickMacroData): nil
+
+---@class QuickMacroItemList
+---@field ctrlCombat number[]?
+---@field shiftCombat number[]?
+---@field altCombat number[]?
+---@field combat number[]?
+---@field ctrl number[]?
+---@field shift number[]?
+---@field alt number[]?
+---@field none number[]
+
+---@class QuickMacroRoleItemList
+---@field TANK QuickMacroItemList
+---@field HEALER QuickMacroItemList
+---@field DAMAGER QuickMacroItemList
+
+---@class QuickMacroDataItemList: QuickMacroData
+---@field itemList QuickMacroItemList | QuickMacroRoleItemList
+---@field updateFunc fun(button: QuickMacroButton, data: QuickMacroDataItemList, inCombat: boolean): boolean
+---@field displayFunc fun(button: QuickMacroButton, data: QuickMacroDataItemList): nil
+
+---@class TableContainsItemList
+---@field itemList QuickMacroItemList | QuickMacroRoleItemList | nil
+
+---@param self QuickMacroButton
+local function ButtonOnEnter(self)
+    _G.GameTooltip:Hide()
+    _G.GameTooltip:SetOwner(self, 'ANCHOR_BOTTOMRIGHT', 0, -2)
+    _G.GameTooltip:ClearLines()
+
+    if not self.displayType and self.tooltip then
+        _G.GameTooltip:AddLine(self.tooltip)
+    elseif self.displayType == 'item' and self.itemID then
+        _G.GameTooltip:SetItemByID(self.itemID)
+    elseif self.displayType == 'toy' and self.itemID then
+        _G.GameTooltip:SetToyByItemID(self.itemID)
+    elseif self.displayType == 'spell' and self.spellID then
+        _G.GameTooltip:SetSpellByID(self.spellID)
+    elseif self.displayType == 'mount' and self.spellID then
+        ---@diagnostic disable-next-line: redundant-parameter
+        _G.GameTooltip:SetMountBySpellID(self.spellID)
+    end
+
+    _G.GameTooltip:Show()
+end
+
+---@param self QuickMacroButton
+local function ButtonOnLeave(self)
+    _G.GameTooltip:Hide()
+end
+
+---@param self QuickMacroButton
+local function ButtonOnUpdate(self)
+    if not self.displayType then return end
+
+    if self.displayType == 'item' or self.displayType == 'toy' then
+        local startTime, duration, enable = C_Item_GetItemCooldown(self.itemID)
+
+        CooldownFrame_Set(self.cooldown, startTime, duration, enable)
+        CooldownFrame_Clear(self.chargeCooldown)
+
+        if duration and duration > 0 and not enable then
+            self.icon:SetVertexColor(.4, .4, .4)
+            return
+        end
+    elseif self.displayType == 'spell' then
+        local cooldownDuration = C_Spell_GetSpellCooldownDuration(self.spellID)
+        local chargeDuration = C_Spell_GetSpellChargeDuration(self.spellID)
+
+        if cooldownDuration then
+            self.cooldown:SetCooldownFromDurationObject(cooldownDuration)
+        else
+            self.cooldown:Clear()
+        end
+
+        if chargeDuration then
+            self.chargeCooldown:SetCooldownFromDurationObject(chargeDuration)
+        else
+            self.chargeCooldown:Clear()
+        end
+    end
+
+    if (
+        (self.displayType == 'item' or self.displayType == 'toy') and
+        (not InCombatLockdown() or UnitCanAttack('player', 'target')) and
+        C_Item_IsItemInRange(self.itemID, 'target') == false
+    ) then
+        self.icon:SetVertexColor(.8, .1, .1)
+    elseif self.displayType == 'spell' or self.displayType == 'mount' then
+        local inRange = C_Spell_IsSpellInRange(self.spellID, 'target')
+        local usable, noMana = C_Spell_IsSpellUsable(self.spellID)
+        if inRange == false then
+            self.icon:SetVertexColor(.8, .1, .1)
+        elseif usable then
+            self.icon:SetVertexColor(1, 1, 1)
+        elseif noMana then
+            self.icon:SetVertexColor(.5, .5, 1)
+        else
+            self.icon:SetVertexColor(.4, .4, .4)
+        end
+    else
+        self.icon:SetVertexColor(1, 1, 1)
+    end
+end
+
+local itemListConditions = {
+    { 'ctrl', 'ctrlCombat', 'ctrl-', function() return IsControlKeyDown() end },
+    { 'shift', 'shiftCombat', 'shift-', function() return IsShiftKeyDown() end },
+    { 'alt', 'altCombat', 'alt-', function() return IsAltKeyDown() end },
+    { 'none', 'combat', '*', function() return true end },
+}
+
+---@param button QuickMacroButton
+---@param data TableContainsItemList
+---@param inCombat boolean
+---@return boolean?
+local function ItemListUpdateFunc(button, data, inCombat)
+    wipe(button.itemDisplay)
+
+    local itemList = data.itemList and data.itemList[R.playerRole] or data.itemList
+    ---@cast itemList QuickMacroItemList
+    if not itemList or not itemList.none or #itemList.none == 0 then return end
+
+    for _, condition in ipairs(itemListConditions) do
+        local key, combatKey, prefix = unpack(condition)
+        ---@type number[]?
+        local slotList = inCombat and itemList[combatKey] or itemList[key]
+        if slotList then
+            local selected = slotList[1]
+            for _, itemID in ipairs(slotList) do
+                local itemCount = C_Item_GetItemCount(itemID)
+                if itemCount and itemCount > 0 then
+                    selected = itemID
+                    break
+                end
+            end
+
+            button:SetAttribute(prefix .. 'type1', 'item')
+            button:SetAttribute(prefix .. 'item1', 'item:' .. selected)
+            button.itemDisplay[key] = selected
+        end
+    end
+
+    return true
+end
+
+---@param button QuickMacroButton
+local function ItemDisplayFunc(button)
+    local itemID = button.itemDisplay.none
+    local itemIsToy = button.itemDisplay.noneIsToy
+
+    for _, condition in ipairs(itemListConditions) do
+        local key, _, _, func = unpack(condition)
+        if button.itemDisplay[key] and func() then
+            itemID = button.itemDisplay[key] --[[@as number]]
+            itemIsToy = button.itemDisplay[key .. 'IsToy'] --[[@as boolean]]
+            break
+        end
+    end
+
+    if not itemID then
+        button.displayType = nil
+        button.itemID = nil
+
+        button:SetBackdropBorderColor(0, 0, 0)
+        button.icon:SetTexture(134400) -- INV_Misc_QuestionMark
+        ---@diagnostic disable-next-line: param-type-mismatch
+        button.qualityOverlay:SetAtlas(nil)
+        button.count:SetText("")
+    else
+        button.displayType = itemIsToy and 'toy' or 'item'
+        button.itemID = itemID
+
+        local itemCount = C_Item_GetItemCount(itemID, nil, true) or 0
+        button.count:SetText(tostring(itemCount))
+
+        local rarity = C_Item_GetItemQualityByID(itemID)
+        local itemIcon = C_Item_GetItemIconByID(itemID)
+        local info = C_TradeSkillUI_GetItemReagentQualityInfo(itemID)
+        if rarity and itemIcon then
+            local r, g, b = C_Item_GetItemQualityColor((rarity and rarity > 1 and rarity) or 1)
+
+            button:SetBackdropBorderColor(r, g, b)
+            button.icon:SetTexture(itemIcon)
+            if info then
+                button.qualityOverlay:SetAtlas(info.iconInventory, true)
+            else
+                ---@diagnostic disable-next-line: param-type-mismatch
+                button.qualityOverlay:SetAtlas(nil)
+            end
+        else
+            local item = Item:CreateFromItemID(itemID)
+            item:ContinueOnItemLoad(function()
+                rarity = item:GetItemQuality()
+
+                local r, g, b = C_Item_GetItemQualityColor((rarity and rarity > 1 and rarity) or 1)
+
+                button:SetBackdropBorderColor(r, g, b)
+                button.icon:SetTexture(item:GetItemIcon())
+                if info then
+                    button.qualityOverlay:SetAtlas(info.iconInventory, true)
+                else
+                    ---@diagnostic disable-next-line: param-type-mismatch
+                    button.qualityOverlay:SetAtlas(nil)
+                end
+            end)
+        end
+    end
+end
+
+---@type table<string, QuickMacroData>
+QM.MacroButtons = {}
+
+---@class QuickMacroButtonMount: QuickMacroButton
+---@field shiftSpellID number?
+---@field shiftIconID number?
+---@field altSpellID number?
+---@field altIconID number?
+---@field noneSpellID number?
+---@field noneIconID number?
+---@field druidIcon number?
+
+---@class QuickMacroDataMount: QuickMacroData
+---@field shift number?
+---@field alt number?
+---@field updateFunc fun(button: QuickMacroButtonMount, data: QuickMacroDataMount, inCombat: boolean): boolean
+---@field displayFunc fun(button: QuickMacroButtonMount, data: QuickMacroDataMount): nil
+---@field clickFunc fun(button: QuickMacroButtonMount, button: string, down: boolean): nil
+---@field menuGenerator fun(owner: QuickMacroButtonMount, rootDescription: table): nil
+QM.MacroButtons.RandomMount = {
+    name = "随机坐骑",
+    index = 1,
+
+    updateEvent = {
+        ['SPELLS_CHANGED'] = true,
+    },
+    ---@param button QuickMacroButtonMount
+    ---@param data QuickMacroDataMount
+    ---@param inCombat boolean
+    updateFunc = function(button, data, inCombat)
+        if not button.initialized then
+            if not _G.MountJournal then
+                C_AddOns_LoadAddOn('Blizzard_Collections')
+            end
+
+            button:SetAttribute('ctrl-type1', 'spell')
+            button:SetAttribute('ctrl-spell1', 436854) -- Switch Flight Style
+
+            if data.shift then
+                local name, spellID, iconID, _, _, _, _, _, _, _, isCollected = C_MountJournal_GetMountInfoByID(data.shift)
+                if isCollected then
+                    button:SetAttribute('shift-type1', 'spell')
+                    button:SetAttribute('shift-spell1', name)
+
+                    button.shiftSpellID = spellID
+                    button.shiftIconID = iconID
+                end
+            end
+
+            if data.alt then
+                local name, spellID, iconID, _, _, _, _, _, _, _, isCollected = C_MountJournal_GetMountInfoByID(data.alt)
+                if isCollected then
+                    button:SetAttribute('alt-type1', 'spell')
+                    button:SetAttribute('alt-spell1', name)
+
+                    button.altSpellID = spellID
+                    button.altIconID = iconID
+                end
+            end
+
+            button:HookScript('OnClick', data.clickFunc)
+            button.count:Hide()
+
+            button.initialized = true
+        end
+
+        local isInUndermine = false
+        local zoneAbilities = C_ZoneAbility_GetActiveAbilities()
+        for _, zoneAbility in ipairs(zoneAbilities) do
+            if zoneAbility.spellID and C_SpellBook_FindSpellOverrideByID(zoneAbility.spellID) == 460013 then -- G-99 Breakneck
+                isInUndermine = true
+                break
+            end
+        end
+
+        if isInUndermine then
+            local g99Breakneck = C_Spell_GetSpellName(460013) -- G-99 Breakneck
+
+            button:SetAttribute('*type1', 'spell')
+            button:SetAttribute('*spell1', g99Breakneck)
+
+            button.druidIcon = nil
+            button.noneSpellID = 460013
+            button.noneIconID = 6383558
+        elseif R.playerClass == 'DRUID' then
+            button:SetAttribute('*type1', 'spell')
+            button:SetAttribute('*spell1', 783) -- Travel Form
+
+            button.druidIcon = 132144
+            button.noneSpellID = nil
+            button.noneIconID = nil
+        else
+            local timestamp = GetServerTime()
+            local timeData = date('*t', timestamp)
+            ---@type boolean
+            local duringHallowsEnd = (
+                (
+                    timeData.year == 2024 and (
+                        (timeData.month == 10 and ((timeData.day > 25) or (timeData.day == 25 and timeData.hour >= 10))) or
+                        (timeData.month == 11 and ((timeData.day < 8) or (timeData.day == 8 and timeData.hour < 11)))
+                    )
+                ) or
+                (
+                    timeData.year > 2024 and (
+                        (timeData.month == 10 and ((timeData.day > 18) or (timeData.day == 18 and timeData.hour >= 10))) or
+                        (timeData.month == 11 and ((timeData.day < 1) or (timeData.day == 1 and timeData.hour < 11)))
+                    )
+                )
+            )
+            local name, spellID, iconID, _, _, _, _, _, _, _, isCollected = C_MountJournal_GetMountInfoByID(1799) -- Eve's Ghastly Rider
+
+            if duringHallowsEnd and isCollected then
+                button:SetAttribute('*type1', 'spell')
+                button:SetAttribute('*spell1', name)
+
+                button.noneSpellID = spellID
+                button.noneIconID = iconID
+            else
+                button:SetAttribute('*type1', 'click')
+                button:SetAttribute('*clickbutton1', _G.MountJournal.SummonRandomFavoriteSpellFrame.Button)
+
+                button.noneSpellID = nil
+                button.noneIconID = nil
+            end
+        end
+
+        return not inCombat
+    end,
+    ---@param button QuickMacroButtonMount
+    displayFunc = function(button)
+        button:SetBackdropBorderColor(0, 112 / 255, 221 / 255)
+
+        if IsControlKeyDown() then
+            local spellIcon = C_Spell_GetSpellTexture(436854)
+
+            button.displayType = 'spell'
+            button.spellID = 436854
+
+            button.icon:SetTexture(spellIcon)
+        elseif button.shiftSpellID and button.shiftIconID and IsShiftKeyDown() then
+            button.displayType = 'mount'
+            button.spellID = button.shiftSpellID
+
+            button.icon:SetTexture(button.shiftIconID)
+        elseif button.altSpellID and button.altIconID and IsAltKeyDown() then
+            button.displayType = 'mount'
+            button.spellID = button.altSpellID
+
+            button.icon:SetTexture(button.altIconID)
+        elseif button.druidIcon then
+            button.displayType = 'spell'
+            button.spellID = 783
+
+            button.icon:SetTexture(button.druidIcon)
+        elseif button.noneSpellID and button.noneIconID then
+            button.displayType = 'mount'
+            button.spellID = button.noneSpellID
+
+            button.icon:SetTexture(button.noneIconID)
+        else
+            button.displayType = 'spell'
+            button.spellID = 150544
+
+            button.icon:SetTexture(853211)
+        end
+    end,
+
+    ---@param self QuickMacroButtonMount
+    ---@param button string
+    ---@param down boolean
+    clickFunc = function(self, button, down)
+        if button == 'RightButton' and not down then
+            MenuUtil_CreateContextMenu(self, QM.MacroButtons.RandomMount.menuGenerator)
+        end
+    end,
+    ---@param _ QuickMacroButtonMount
+    ---@param rootDescription table
+    menuGenerator = function(_, rootDescription)
+        for _, mountID in ipairs(QM.MacroButtons.RandomMount.list) do
+            local name, _, iconID, _, _, _, _, _, _, _, isCollected = C_MountJournal_GetMountInfoByID(mountID)
+            if isCollected then
+                local button = rootDescription:CreateButton(name, C_MountJournal_SummonByID, mountID)
+                button:AddInitializer(function(self)
+                    local texture = self:AttachTexture()
+                    texture:SetPoint('RIGHT')
+                    texture:SetSize(16, 16)
+                    texture:SetTexture(iconID)
+                    texture:SetTexCoord(.1, .9, .1, .9)
+
+                    local fontString = self.fontString
+                    fontString:SetPoint('RIGHT', texture, 'LEFT')
+
+                    local width, height = fontString:GetUnboundedStringWidth() + 20, 20
+                    return width, height
+                end)
+            end
+        end
+    end,
+    shift = 2265, -- Trader's Gilded Brutosaur
+    alt = 460, -- Grand Expedition Yak
+    list = {
+        2981, -- Tuskarr Hermit Crab
+        2948, -- Golden Ashened Cataclysm
+        2265, -- Trader's Gilded Brutosaur
+        1039, -- Mighty Caravan Brutosaur
+        460, -- Grand Expedition Yak
+        R.playerFaction == 'Alliance' and 280 or 284, -- Traveler's Tundra Mammoth
+        2237, -- Grizzly Hills Packmaster
+        1654, -- Otterworldly Ottuk Carrier
+        382, -- X-53 Touring Rocket
+        407, -- Sandstone Drake
+    },
+}
+
+---@class QuickMacroDataHearthstone: QuickMacroData
+---@field hearthstoneList number[]
+---@field updateFunc fun(button: QuickMacroButton, data: self, inCombat: boolean): boolean
+---@field displayFunc fun(button: QuickMacroButton, data: self): nil
+---@field clickFunc fun(self: QuickMacroButton, button: string, down: boolean): nil
+QM.MacroButtons.RandomHearthstone = {
+    name = "随机炉石",
+    index = 2,
+
+    updateEvent = {
+        ['PLAYER_ENTERING_WORLD'] = true,
+    },
+    updateFunc = function(button, data, inCombat)
+        if not button.initialized then
+            if PlayerHasToy(140192) then -- Dalaran Hearthstone
+                button:SetAttribute('shift-type1', 'toy')
+                button:SetAttribute('shift-toy1', 140192)
+                button.itemDisplay.shift = 140192
+                button.itemDisplay.shiftIsToy = true
+            end
+
+            if PlayerHasToy(110560) then -- Garrison Hearthstone
+                button:SetAttribute('ctrl-type1', 'toy')
+                button:SetAttribute('ctrl-toy1', 110560)
+                button.itemDisplay.ctrl = 110560
+                button.itemDisplay.ctrlIsToy = true
+            end
+
+            if PlayerHasToy(253629) then -- Personal Key to the Arcantina
+                button:SetAttribute('alt-type1', 'toy')
+                button:SetAttribute('alt-toy1', 253629)
+                button.itemDisplay.alt = 253629
+                button.itemDisplay.altIsToy = true
+            end
+
+            button:HookScript('OnClick', data.clickFunc)
+            button.count:Hide()
+
+            button.initialized = true
+        end
+
+        local list = {}
+        for _, itemID in ipairs(data.hearthstoneList) do
+            if R.db.QuickMacro.Hearthstone[itemID] and PlayerHasToy(itemID) then
+                tinsert(list, itemID)
+            end
+        end
+        if #list > 0 then
+            local hsItemID = list[random(#list)]
+            button:SetAttribute('*type1', 'toy')
+            button:SetAttribute('*toy1', hsItemID)
+            button.itemDisplay.none = hsItemID
+            button.itemDisplay.noneIsToy = true
+        else
+            button:SetAttribute('*type1', 'item')
+            button:SetAttribute('*item1', 'item:6948')
+            button.itemDisplay.none = 6948
+            button.itemDisplay.noneIsToy = false
+        end
+
+        return not inCombat
+    end,
+    displayFunc = ItemDisplayFunc,
+
+    clickFunc = function(self, button, down)
+        if button == 'RightButton' and not down and not InCombatLockdown() then
+            local data = QM.MacroButtons.RandomHearthstone
+
+            local list = {}
+            for _, itemID in ipairs(data.hearthstoneList) do
+                if R.db.QuickMacro.Hearthstone[itemID] and PlayerHasToy(itemID) then
+                    tinsert(list, itemID)
+                end
+            end
+            if #list > 0 then
+                local hsItemID = list[random(#list)]
+                self:SetAttribute('*type1', 'toy')
+                self:SetAttribute('*toy1', hsItemID)
+                self.itemDisplay.none = hsItemID
+                self.itemDisplay.noneIsToy = true
+            else
+                self:SetAttribute('*type1', 'item')
+                self:SetAttribute('*item1', 'item:6948')
+                self.itemDisplay.none = 6948
+                self.itemDisplay.noneIsToy = false
+            end
+
+            ItemDisplayFunc(self)
+            ButtonOnEnter(self)
+        end
+    end,
+    hearthstoneList = {
+        ---AUTO_GENERATED LEADING QuickMacroHearthstone
+        54452,  -- Ethereal Portal
+        64488,  -- The Innkeeper's Daughter
+        93672,  -- Dark Portal
+        142542, -- Tome of Town Portal
+        162973, -- Greatfather Winter's Hearthstone
+        163045, -- Headless Horseman's Hearthstone
+        165669, -- Lunar Elder's Hearthstone
+        165670, -- Peddlefeet's Lovely Hearthstone
+        165802, -- Noble Gardener's Hearthstone
+        166746, -- Fire Eater's Hearthstone
+        166747, -- Brewfest Reveler's Hearthstone
+        168907, -- Holographic Digitalization Hearthstone
+        172179, -- Eternal Traveler's Hearthstone
+        180290, -- Night Fae Hearthstone
+        182773, -- Necrolord Hearthstone
+        183716, -- Venthyr Sinstone
+        184353, -- Kyrian Hearthstone
+        188952, -- Dominated Hearthstone
+        190196, -- Enlightened Hearthstone
+        190237, -- Broker Translocation Matrix
+        193588, -- Timewalker's Hearthstone
+        200630, -- Ohn'ir Windsage's Hearthstone
+        206195, -- Path of the Naaru
+        208704, -- Deepdweller's Earthen Hearthstone
+        209035, -- Hearthstone of the Flame
+        212337, -- Stone of the Hearth
+        210455, -- Draenic Hologem
+        228940, -- Notorious Thread's Hearthstone
+        235016, -- Redeployment Module
+        236687, -- Explosive Hearthstone
+        245970, -- P.O.S.T. Master's Express Hearthstone
+        246565, -- Cosmic Hearthstone
+        257736, -- Lightcalled Hearthstone
+        263489, -- Naaru's Enfold
+        263933, -- Preyseeker's Hearthstone
+        264367, -- Mycomancer's Hearthspore
+        265100, -- Corewarden's Hearthstone
+        281136, -- Hiveborne Hearthstone
+        281615, -- Shadeweaver's Hearthstone
+        ---AUTO_GENERATED TAILING QuickMacroHearthstone
+    },
+}
+
+---@type QuickMacroDataItemList
+QM.MacroButtons.RestoreHealth = {
+    name = "回血保命",
+    index = 3,
+
+    updateEvent = {
+        ['BAG_UPDATE_DELAYED'] = true,
+    },
+    updateFunc = ItemListUpdateFunc,
+    displayFunc = ItemDisplayFunc,
+
+    itemList = {
+        ctrl = {
+            ---AUTO_GENERATED LEADING QuickMacroConsumablesHealingPotions
+            271884, -- Concentrated Silvermoon Health Potion (Tier 2)
+            271883, -- Concentrated Silvermoon Health Potion (Tier 1)
+            241304, -- Silvermoon Health Potion (Tier 2)
+            241305, -- Silvermoon Health Potion (Tier 1)
+            241298, -- Amani Extract (Tier 2)
+            241299, -- Amani Extract (Tier 1)
+            241286, -- Light's Preservation (Tier 2)
+            241287, -- Light's Preservation (Tier 1)
+            ---AUTO_GENERATED TAILING QuickMacroConsumablesHealingPotions
+
+            258138, -- Potent Healing Potion
+        },
+        none = {
+            5512,   -- Healthstone
+            224464, -- Demonic Healthstone
+
+            ---AUTO_GENERATED LEADING QuickMacroConsumablesHealingPotions
+            271884, -- Concentrated Silvermoon Health Potion (Tier 2)
+            271883, -- Concentrated Silvermoon Health Potion (Tier 1)
+            241304, -- Silvermoon Health Potion (Tier 2)
+            241305, -- Silvermoon Health Potion (Tier 1)
+            241298, -- Amani Extract (Tier 2)
+            241299, -- Amani Extract (Tier 1)
+            241286, -- Light's Preservation (Tier 2)
+            241287, -- Light's Preservation (Tier 1)
+            ---AUTO_GENERATED TAILING QuickMacroConsumablesHealingPotions
+
+            258138, -- Potent Healing Potion
+        },
+    },
+}
+
+---@type QuickMacroDataItemList
+QM.MacroButtons.CombatPotion = {
+    name = "战斗药水",
+    index = 4,
+
+    updateEvent = {
+        ['BAG_UPDATE_DELAYED'] = true,
+        ['PLAYER_SPECIALIZATION_CHANGED'] = true,
+    },
+    updateFunc = ItemListUpdateFunc,
+    displayFunc = ItemDisplayFunc,
+
+    itemList = {
+        ['HEALER'] = {
+            combat = {
+                ---AUTO_GENERATED LEADING QuickMacroConsumablesInstantManaPotions
+                241300, -- Lightfused Mana Potion (Tier 2)
+                241301, -- Lightfused Mana Potion (Tier 1)
+                ---AUTO_GENERATED TAILING QuickMacroConsumablesInstantManaPotions
+            },
+            ctrl = {
+                ---AUTO_GENERATED LEADING QuickMacroConsumablesChannelManaPotions
+                241294, -- Potion of Devoured Dreams (Tier 2)
+                241295, -- Potion of Devoured Dreams (Tier 1)
+                ---AUTO_GENERATED TAILING QuickMacroConsumablesChannelManaPotions
+            },
+            none = {
+                ---AUTO_GENERATED LEADING QuickMacroConsumablesWater
+                242301, -- Azeroot Tea
+                242300, -- Tranquility Bloom Tea
+                242299, -- Sanguithorn Tea
+                242298, -- Argentleaf Tea
+                242297, -- Mana Lily Tea
+                ---AUTO_GENERATED TAILING QuickMacroConsumablesWater
+
+                ---AUTO_GENERATED LEADING QuickMacroConsumablesManaBuns
+                113509, -- Conjured Mana Bun
+                80618,  -- Conjured Mana Fritter
+                80610,  -- Conjured Mana Pudding
+                65517,  -- Conjured Mana Lollipop
+                65516,  -- Conjured Mana Cupcake
+                65515,  -- Conjured Mana Brownie
+                65500,  -- Conjured Mana Cookie
+                65499,  -- Conjured Mana Cake
+                43523,  -- Conjured Mana Strudel
+                43518,  -- Conjured Mana Pie
+                ---AUTO_GENERATED TAILING QuickMacroConsumablesManaBuns
+            },
+        },
+        ['TANK'] = {
+            combat = {
+                ---AUTO_GENERATED LEADING QuickMacroConsumablesCombatPotions
+                271890, -- Alluring Nostrum (Tier 2)
+                271889, -- Alluring Nostrum (Tier 1)
+                271887, -- Liquid Luster (Tier 2)
+                271886, -- Liquid Luster (Tier 1)
+                241338, -- Enlightenment Tonic (Tier 2)
+                241339, -- Enlightenment Tonic (Tier 1)
+                241308, -- Light's Potential (Tier 2)
+                241309, -- Light's Potential (Tier 1)
+                241306, -- Refreshing Serum (Tier 2)
+                241307, -- Refreshing Serum (Tier 1)
+                241296, -- Potion of Zealotry (Tier 2)
+                241297, -- Potion of Zealotry (Tier 1)
+                241292, -- Draught of Rampant Abandon (Tier 2)
+                241293, -- Draught of Rampant Abandon (Tier 1)
+                241288, -- Potion of Recklessness (Tier 2)
+                241289, -- Potion of Recklessness (Tier 1)
+                ---AUTO_GENERATED TAILING QuickMacroConsumablesCombatPotions
+            },
+            none = {
+                ---AUTO_GENERATED LEADING QuickMacroConsumablesManaBuns
+                113509, -- Conjured Mana Bun
+                80618,  -- Conjured Mana Fritter
+                80610,  -- Conjured Mana Pudding
+                65517,  -- Conjured Mana Lollipop
+                65516,  -- Conjured Mana Cupcake
+                65515,  -- Conjured Mana Brownie
+                65500,  -- Conjured Mana Cookie
+                65499,  -- Conjured Mana Cake
+                43523,  -- Conjured Mana Strudel
+                43518,  -- Conjured Mana Pie
+                ---AUTO_GENERATED TAILING QuickMacroConsumablesManaBuns
+            },
+        },
+        ['DAMAGER'] = {
+            combat = {
+                ---AUTO_GENERATED LEADING QuickMacroConsumablesCombatPotions
+                271890, -- Alluring Nostrum (Tier 2)
+                271889, -- Alluring Nostrum (Tier 1)
+                271887, -- Liquid Luster (Tier 2)
+                271886, -- Liquid Luster (Tier 1)
+                241338, -- Enlightenment Tonic (Tier 2)
+                241339, -- Enlightenment Tonic (Tier 1)
+                241308, -- Light's Potential (Tier 2)
+                241309, -- Light's Potential (Tier 1)
+                241306, -- Refreshing Serum (Tier 2)
+                241307, -- Refreshing Serum (Tier 1)
+                241296, -- Potion of Zealotry (Tier 2)
+                241297, -- Potion of Zealotry (Tier 1)
+                241292, -- Draught of Rampant Abandon (Tier 2)
+                241293, -- Draught of Rampant Abandon (Tier 1)
+                241288, -- Potion of Recklessness (Tier 2)
+                241289, -- Potion of Recklessness (Tier 1)
+                ---AUTO_GENERATED TAILING QuickMacroConsumablesCombatPotions
+            },
+            none = {
+                ---AUTO_GENERATED LEADING QuickMacroConsumablesManaBuns
+                113509, -- Conjured Mana Bun
+                80618,  -- Conjured Mana Fritter
+                80610,  -- Conjured Mana Pudding
+                65517,  -- Conjured Mana Lollipop
+                65516,  -- Conjured Mana Cupcake
+                65515,  -- Conjured Mana Brownie
+                65500,  -- Conjured Mana Cookie
+                65499,  -- Conjured Mana Cake
+                43523,  -- Conjured Mana Strudel
+                43518,  -- Conjured Mana Pie
+                ---AUTO_GENERATED TAILING QuickMacroConsumablesManaBuns
+            },
+        },
+    },
+}
+
+---@class QuickMacroDataConsumableSubDynamic: QuickMacroData
+---@field macroTemplate string?
+---@field itemLists { itemList: QuickMacroItemList, source: { itemID: number, equippedItemInvTypes?: string[], equippedItemSubclass?: number[] }[] }
+---@field choose fun(itemLists: { itemList: QuickMacroItemList, source: { itemID: number, equippedItemInvTypes?: string[], equippedItemSubclass?: number[] }[] }): nil
+
+---@alias QuickMacroDataConsumableSub TableContainsItemList | QuickMacroDataConsumableSubDynamic
+
+---@class QuickMacroButtonConsumable: QuickMacroButton
+---@field subButtons [QuickMacroButton, QuickMacroDataConsumableSub][]
+
+---@class QuickMacroDataConsumable: QuickMacroData
+---@field onClickSnippet string
+---@field onCombatSnippet string
+---@field subButtonList QuickMacroDataConsumableSub[]
+---@field updateFunc fun(button: QuickMacroButtonConsumable, data: self, inCombat: boolean): boolean
+---@field displayFunc fun(button: QuickMacroButtonConsumable, data: self): nil
+---@field clickFunc fun(button: QuickMacroButtonConsumable, button: string, down: boolean): nil
+QM.MacroButtons.Consumable = {
+    name = "消耗品",
+    index = 5,
+
+    updateEvent = {
+        ['PLAYER_ENTERING_WORLD'] = true,
+        ['BAG_UPDATE_DELAYED'] = true,
+        ['PLAYER_SPECIALIZATION_CHANGED'] = true,
+        ['PLAYER_EQUIPMENT_CHANGED'] = true,
+    },
+    updateFunc = function(button, data, inCombat)
+        if not button.initialized then
+            ---@class QuickMacroConsumableSubFrame: Frame
+            local subFrame = CreateFrame('Frame', nil, button)
+            subFrame:ClearAllPoints()
+            subFrame:SetPoint('BOTTOM', button, 'TOP', 0, -3)
+            subFrame:SetSize(4, 4)
+            subFrame:Hide()
+            subFrame.buttons = {}
+
+            button.subButtons = {}
+
+            ---@type QuickMacroConsumableSubFrame | QuickMacroButton
+            local prev = subFrame
+            for index, subButtonData in ipairs(data.subButtonList) do
+                local subButton = QM:CreateButton('Consumable' .. index, subFrame)
+                subButton:ClearAllPoints()
+                subButton:SetPoint('BOTTOM', prev, 'TOP', 0, 3)
+                prev = subButton
+
+                tinsert(button.subButtons, { subButton, subButtonData })
+            end
+
+            ---@class QuickMacroConsumableOverlay: Button & SecureHandlerStateTemplate & SecureHandlerClickTemplate
+            local overlay = CreateFrame('Button', button:GetName() .. 'Overlay', button, 'SecureHandlerStateTemplate, SecureHandlerClickTemplate')
+            overlay:ClearAllPoints()
+            overlay:SetAllPoints()
+            overlay:SetScript('OnEnter', button:GetScript('OnEnter'))
+            overlay:SetScript('OnLeave', button:GetScript('OnLeave'))
+
+            overlay:RegisterForClicks('AnyUp', 'AnyDown')
+            R:SetupButton(overlay)
+
+            SecureHandlerSetFrameRef(overlay, 'subFrame', subFrame)
+            overlay:SetAttribute('expanded', false)
+            RegisterStateDriver(overlay, 'combat', '[nocombat] 0; 1')
+            overlay:SetAttribute('_onstate-combat', data.onCombatSnippet)
+            overlay:SetAttribute('_onclick', data.onClickSnippet)
+
+            button.initialized = true
+        end
+
+        for _, subButtonArray in ipairs(button.subButtons) do
+            local subButton, subButtonData = subButtonArray[1], subButtonArray[2]
+
+            if subButtonData.choose then
+                subButtonData.choose(subButtonData.itemLists)
+
+                local show = ItemListUpdateFunc(subButton, subButtonData.itemLists, inCombat)
+                subButton:SetShown(show)
+
+                if show and subButtonData.macroTemplate then
+                    local itemString = subButton:GetAttribute('*item1')
+                    local macroText = format(subButtonData.macroTemplate, itemString)
+
+                    subButton:SetAttribute('*type1', 'macro')
+                    subButton:SetAttribute('*macrotext1', macroText)
+                end
+            else
+                ---@cast subButtonData TableContainsItemList
+                local show = ItemListUpdateFunc(subButton, subButtonData, inCombat)
+                subButton:SetShown(show)
+            end
+        end
+
+        return true
+    end,
+    displayFunc = function(button)
+        button:SetBackdropBorderColor(0, 112 / 255, 221 / 255)
+        button.icon:SetTexture(237271)
+
+        for _, subButtonArray in ipairs(button.subButtons) do
+            local subButton = subButtonArray[1]
+            ItemDisplayFunc(subButton)
+        end
+    end,
+
+    onClickSnippet = [[
+        if button == 'LeftButton' and not down then
+            if self:GetAttribute('expanded') then
+                self:SetAttribute('expanded', false)
+                self:ClearBinding('ESCAPE')
+                self:GetFrameRef('subFrame'):Hide()
+            else
+                self:SetAttribute('expanded', true)
+                self:SetBindingClick(0, 'ESCAPE', self:GetName())
+                self:GetFrameRef('subFrame'):Show()
+            end
+        end
+    ]],
+    onCombatSnippet = [[
+        if newstate == 1 and self:GetAttribute('expanded') then
+            self:SetAttribute('expanded', false)
+            self:ClearBinding('ESCAPE')
+            self:GetFrameRef('subFrame'):Hide()
+        end
+    ]],
+    subButtonList = {
+        {
+            itemList = {
+                none = {
+                    ---AUTO_GENERATED LEADING QuickMacroConsumablesFlasks
+                    241326, -- Flask of the Shattered Sun (Tier 2)
+                    241327, -- Flask of the Shattered Sun (Tier 1)
+                    241324, -- Flask of the Blood Knights (Tier 2)
+                    241325, -- Flask of the Blood Knights (Tier 1)
+                    241322, -- Flask of the Magisters (Tier 2)
+                    241323, -- Flask of the Magisters (Tier 1)
+                    241320, -- Flask of Thalassian Resistance (Tier 2)
+                    241321, -- Flask of Thalassian Resistance (Tier 1)
+                    ---AUTO_GENERATED TAILING QuickMacroConsumablesFlasks
+                },
+            },
+        },
+        {
+            itemList = {
+                none = {
+                    ---AUTO_GENERATED LEADING QuickMacroConsumablesFood
+                    275263, -- Hearty Sweet-And-Sour Skewers
+                    275262, -- Hearty Puffer Plate
+                    275259, -- Hearty Venom-Spiced Cutlets
+                    268680, -- Hearty Flora Frenzy
+                    268679, -- Hearty Impossibly Royal Roast
+                    242775, -- Hearty Portable Snack
+                    242774, -- Hearty Quick Sandwich
+                    242773, -- Hearty Forager's Medley
+                    242772, -- Hearty Silvermoon Standard
+                    242771, -- Hearty Spiced Biscuits
+                    242770, -- Hearty Mana-Infused Stew
+                    242769, -- Hearty Bloom Skewers
+                    242768, -- Hearty Bloodthistle-Wrapped Cutlets
+                    242767, -- Hearty Hearthflame Supper
+                    242766, -- Hearty Felberry Figs
+                    242765, -- Hearty Sunwell Delight
+                    242764, -- Hearty Eversong Pudding
+                    242763, -- Hearty Fried Bloomtail
+                    242762, -- Hearty Wise Tails
+                    242761, -- Hearty Spellfire Filet
+                    242760, -- Hearty Twilight Angler's Medley
+                    242759, -- Hearty Arcano Cutlets
+                    242758, -- Hearty Fel-Kissed Filet
+                    242757, -- Hearty Warped Wise Wings
+                    242756, -- Hearty Void-Kissed Fish Rolls
+                    242755, -- Hearty Sun-Seared Lumifin
+                    242754, -- Hearty Null and Void Plate
+                    242753, -- Hearty Glitter Skewers
+                    242752, -- Hearty Buttered Root Crab
+                    242750, -- Hearty Tasty Smoked Tetra
+                    242749, -- Hearty Crimson Calamari
+                    242748, -- Hearty Braised Blood Hunter
+                    242747, -- Hearty Royal Roast
+                    242746, -- Hearty Champion's Bento
+                    242776, -- Hearty Farstrider Rations
+                    275261, -- Sweet-And-Sour Skewers
+                    275260, -- Puffer Plate
+                    275258, -- Venom-Spiced Cutlets
+                    255848, -- Flora Frenzy
+                    255847, -- Impossibly Royal Roast
+                    242308, -- Portable Snack
+                    242307, -- Quick Sandwich
+                    242306, -- Forager's Medley
+                    242305, -- Silvermoon Standard
+                    242304, -- Spiced Biscuits
+                    242303, -- Mana-Infused Stew
+                    242302, -- Bloom Skewers
+                    242301, -- Azeroot Tea
+                    242299, -- Sanguithorn Tea
+                    242298, -- Argentleaf Tea
+                    242297, -- Mana Lily Tea
+                    242296, -- Bloodthistle-Wrapped Cutlets
+                    242295, -- Hearthflame Supper
+                    242294, -- Felberry Figs
+                    242293, -- Sunwell Delight
+                    242292, -- Eversong Pudding
+                    242291, -- Fried Bloomtail
+                    242290, -- Wise Tails
+                    242289, -- Spellfire Filet
+                    242288, -- Twilight Angler's Medley
+                    242287, -- Arcano Cutlets
+                    242286, -- Fel-Kissed Filet
+                    242285, -- Warped Wise Wings
+                    242284, -- Void-Kissed Fish Rolls
+                    242283, -- Sun-Seared Lumifin
+                    242282, -- Null and Void Plate
+                    242281, -- Glitter Skewers
+                    242280, -- Buttered Root Crab
+                    242278, -- Tasty Smoked Tetra
+                    242277, -- Crimson Calamari
+                    242276, -- Braised Blood Hunter
+                    242275, -- Royal Roast
+                    242274, -- Champion's Bento
+                    242309, -- Farstrider Rations
+                    ---AUTO_GENERATED TAILING QuickMacroConsumablesFood
+                },
+            },
+        },
+        {
+            itemList = {
+                none = {
+                    ---AUTO_GENERATED LEADING QuickMacroConsumablesRunes
+                    274797, -- Tidesworn Augment Rune
+                    259085, -- Void-Touched Augment Rune
+                    ---AUTO_GENERATED TAILING QuickMacroConsumablesRunes
+                },
+            },
+        },
+        {
+            choose = function(itemLists)
+                wipe(itemLists.itemList.none)
+
+                local itemID = GetInventoryItemID('player', 16)
+                if not itemID then return end
+
+                local _, _, _, itemEquipLoc, _, _, subClassID = C_Item_GetItemInfoInstant(itemID)
+
+                for _, data in ipairs(itemLists.source) do
+                    if (
+                        (not data.equippedItemInvTypes or tContains(data.equippedItemInvTypes, itemEquipLoc)) and
+                        (not data.equippedItemSubclass or tContains(data.equippedItemSubclass, subClassID))
+                    ) then
+                        tinsert(itemLists.itemList.none, data.itemID)
+                    end
+                end
+            end,
+
+            macroTemplate = '/use %s\n/use 16',
+            itemLists = {
+                itemList = {
+                    none = {},
+                },
+                source = {
+                    ---AUTO_GENERATED LEADING QuickMacroTempEnchantment
+                    {
+                        itemID = 243738, -- Smuggler's Enchanted Edge (Tier 2)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 243737, -- Smuggler's Enchanted Edge (Tier 1)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 243736, -- Oil of Dawn (Tier 2)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 243735, -- Oil of Dawn (Tier 1)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 243734, -- Thalassian Phoenix Oil (Tier 2)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 243733, -- Thalassian Phoenix Oil (Tier 1)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 237369, -- Refulgent Weightstone (Tier 2)
+                        equippedItemSubclass = {4, 5, 10, 13},
+                    },
+                    {
+                        itemID = 237367, -- Refulgent Weightstone (Tier 1)
+                        equippedItemSubclass = {4, 5, 10, 13},
+                    },
+                    {
+                        itemID = 237371, -- Refulgent Whetstone (Tier 2)
+                        equippedItemSubclass = {0, 1, 6, 7, 8, 9, 13, 15},
+                    },
+                    {
+                        itemID = 237370, -- Refulgent Whetstone (Tier 1)
+                        equippedItemSubclass = {0, 1, 6, 7, 8, 9, 13, 15},
+                    },
+                    ---AUTO_GENERATED TAILING QuickMacroTempEnchantment
+                },
+            },
+        },
+        {
+            choose = function(itemLists)
+                wipe(itemLists.itemList.none)
+
+                local itemID = GetInventoryItemID('player', 17)
+                if not itemID then return end
+
+                local _, _, _, itemEquipLoc, _, _, subClassID = C_Item_GetItemInfoInstant(itemID)
+
+                for _, data in ipairs(itemLists.source) do
+                    if (
+                        (not data.equippedItemInvTypes or tContains(data.equippedItemInvTypes, itemEquipLoc)) and
+                        (not data.equippedItemSubclass or tContains(data.equippedItemSubclass, subClassID))
+                    ) then
+                        tinsert(itemLists.itemList.none, data.itemID)
+                    end
+                end
+            end,
+
+            macroTemplate = '/use %s\n/use 17',
+            itemLists = {
+                itemList = {
+                    none = {},
+                },
+                source = {
+                    ---AUTO_GENERATED LEADING QuickMacroTempEnchantment
+                    {
+                        itemID = 243738, -- Smuggler's Enchanted Edge (Tier 2)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 243737, -- Smuggler's Enchanted Edge (Tier 1)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 243736, -- Oil of Dawn (Tier 2)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 243735, -- Oil of Dawn (Tier 1)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 243734, -- Thalassian Phoenix Oil (Tier 2)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 243733, -- Thalassian Phoenix Oil (Tier 1)
+                        equippedItemInvTypes = {
+                            'INVTYPE_WEAPON',
+                            'INVTYPE_RANGED',
+                            'INVTYPE_2HWEAPON',
+                            'INVTYPE_WEAPONMAINHAND',
+                            'INVTYPE_WEAPONOFFHAND',
+                            'INVTYPE_RANGEDRIGHT',
+                        },
+                        equippedItemSubclass = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19},
+                    },
+                    {
+                        itemID = 237369, -- Refulgent Weightstone (Tier 2)
+                        equippedItemSubclass = {4, 5, 10, 13},
+                    },
+                    {
+                        itemID = 237367, -- Refulgent Weightstone (Tier 1)
+                        equippedItemSubclass = {4, 5, 10, 13},
+                    },
+                    {
+                        itemID = 237371, -- Refulgent Whetstone (Tier 2)
+                        equippedItemSubclass = {0, 1, 6, 7, 8, 9, 13, 15},
+                    },
+                    {
+                        itemID = 237370, -- Refulgent Whetstone (Tier 1)
+                        equippedItemSubclass = {0, 1, 6, 7, 8, 9, 13, 15},
+                    },
+                    ---AUTO_GENERATED TAILING QuickMacroTempEnchantment
+                },
+            },
+        },
+    },
+}
+
+---@class QuickMacroDataUtilityToyItemDataAuto
+---@field type 'auto'
+---@field name string
+---@field icon number
+---@field items table<number, number>
+
+---@class QuickMacroDataUtilityToyItemDataList
+---@field type 'list'
+---@field name string
+---@field icon number
+---@field items number[]
+
+---@class QuickMacroDataUtilityToyItemDataSolo
+---@field type 'item'
+---@field name string
+---@field icon number
+---@field item number
+
+---@class QuickMacroDataUtilityToyItemDataSpell
+---@field type 'spell'
+---@field name string
+---@field icon number
+---@field spell number
+
+---@alias QuickMacroDataUtilityToyItemData QuickMacroDataUtilityToyItemDataAuto | QuickMacroDataUtilityToyItemDataList | QuickMacroDataUtilityToyItemDataSolo | QuickMacroDataUtilityToyItemDataSpell
+
+---@class QuickMacroButtonUtilityToy: QuickMacroButton
+---@field mailItemID number
+---@field usingIndex number
+---@field noneSpellID number?
+---@field noneIconID number?
+
+---@class QuickMacroDataUtilityToy: QuickMacroData
+---@field list QuickMacroDataUtilityToyItemData[]
+---@field updateFunc fun(button: QuickMacroButtonUtilityToy, data: self, inCombat: boolean): boolean
+---@field displayFunc fun(button: QuickMacroButtonUtilityToy, data: self): nil
+---@field clickFunc fun(button: QuickMacroButtonUtilityToy, button: string, down: boolean): nil
+---@field menuGenerator fun(owner: QuickMacroButtonUtilityToy, rootDescription: table): nil
+---@field isSelected fun(index: number): boolean
+---@field setSelected fun(index: number): nil
+QM.MacroButtons.UtilityToy = {
+    name = "实用玩具",
+    index = 6,
+
+    updateEvent = {
+        ['PLAYER_ENTERING_WORLD'] = true,
+        ['ZONE_CHANGED_NEW_AREA'] = true,
+    },
+    updateFunc = function(button, data)
+        if not button.initialized then
+            -- item:156833 (Katy's Stampwhistle)
+            -- item:194885 (Ohuna Perch)
+            -- item:264695 (Interdimensional Parcel Signal)
+            local mailItemID = PlayerHasToy(156833)
+                and 156833
+                or (
+                    PlayerHasToy(194885)
+                    and 194885
+                    or 264695
+                )
+            button.mailItemID = mailItemID
+
+            button:SetAttribute('shift-type1', 'toy')
+            button:HookScript('OnClick', data.clickFunc)
+            button.usingIndex = 1
+
+            button.itemDisplay.shiftIsToy = true
+            button.itemDisplay.noneIsToy = true
+            button.count:Hide()
+
+            button.initialized = true
+        end
+
+        local info = C_TradeSkillUI_GetProfessionInfoBySkillLineID(2504)
+        local isMOLLEUsable = info and info.skillLevel >= 50
+        local isMOLLEAvailable = isMOLLEUsable and PlayerHasToy(40768)
+        if isMOLLEAvailable then
+            local _, duration, enable = C_Item_GetItemCooldown(40768)
+            local isMOLLEOffCooldown = enable and duration == 0
+
+            if isMOLLEOffCooldown then
+                button:SetAttribute('shift-toy1', 40768)
+                button.itemDisplay.shift = 40768
+            else
+                button:SetAttribute('shift-toy1', button.mailItemID)
+                button.itemDisplay.shift = button.mailItemID
+            end
+        else
+            button:SetAttribute('shift-toy1', button.mailItemID)
+            button.itemDisplay.shift = button.mailItemID
+        end
+
+        local usingData = data.list[button.usingIndex]
+        if usingData.type == 'auto' then
+            local instanceID = select(8, GetInstanceInfo())
+            local itemID = instanceID and usingData.items[instanceID]
+            if itemID then
+                button:SetAttribute('*type1', 'toy')
+                button:SetAttribute('*toy1', itemID)
+                button.itemDisplay.none = itemID
+                button.noneSpellID = nil
+
+                return true
+            else
+                usingData = data.list[button.usingIndex + 1]
+            end
+        end
+
+        -- XXX: auto must be the first one, and plus one will find others
+        if usingData.type == 'list' then
+            local length = #usingData.items
+            for index, itemID in ipairs(usingData.items) do
+                if index == length or PlayerHasToy(itemID) then
+                    button:SetAttribute('*type1', 'toy')
+                    button:SetAttribute('*toy1', itemID)
+                    button.itemDisplay.none = itemID
+                    button.noneSpellID = nil
+                    break
+                end
+            end
+        elseif usingData.type == 'item' then
+            local itemID = usingData.item
+            button:SetAttribute('*type1', 'toy')
+            button:SetAttribute('*toy1', itemID)
+            button.itemDisplay.none = itemID
+            button.noneSpellID = nil
+        elseif usingData.type == 'spell' then
+            button:SetAttribute('*type1', 'spell')
+            button:SetAttribute('*spell1', usingData.spell)
+            button.noneSpellID = usingData.spell
+            button.noneIconID = usingData.icon
+        end
+
+        return true
+    end,
+    displayFunc = function(button)
+        if button.noneSpellID then
+            button.displayType = 'spell'
+            button.spellID = button.noneSpellID
+
+            button:SetBackdropBorderColor(0, 112 / 255, 221 / 255)
+            button.icon:SetTexture(button.noneIconID)
+        else
+            ItemDisplayFunc(button)
+        end
+    end,
+
+    clickFunc = function(self, button, down)
+        if button == 'RightButton' and not down then
+            MenuUtil_CreateContextMenu(self, QM.MacroButtons.UtilityToy.menuGenerator)
+        end
+    end,
+    menuGenerator = function(_, rootDescription)
+        local data = QM.MacroButtons.UtilityToy
+        for index, entry in ipairs(QM.MacroButtons.UtilityToy.list) do
+            local radio = rootDescription:CreateRadio(entry.name, data.isSelected, data.setSelected, index)
+            radio:AddInitializer(function(self)
+                local texture = self:AttachTexture()
+                texture:SetPoint('RIGHT')
+                texture:SetSize(16, 16)
+                texture:SetTexture(entry.icon)
+                texture:SetTexCoord(.1, .9, .1, .9)
+
+                local fontString = self.fontString
+                fontString:SetPoint('RIGHT', texture, 'LEFT')
+
+                local width, height = fontString:GetUnboundedStringWidth() + 20, 20
+                return width, height
+            end)
+        end
+    end,
+    isSelected = function(index)
+        return QM.buttons.UtilityToy.usingIndex == index
+    end,
+    setSelected = function(index)
+        local data = QM.MacroButtons.UtilityToy
+        local button = QM.buttons.UtilityToy
+        ---@cast button QuickMacroButtonUtilityToy
+
+        button.usingIndex = index
+
+        if not InCombatLockdown() then
+            data.updateFunc(button, data, false)
+            data.displayFunc(button, data)
+        end
+    end,
+    list = {
+        {
+            type = 'auto',
+            name = "自动",
+            icon = 134269,
+            items = {
+                [2285] = 158149, -- Spires of Ascension / Overtuned Corgi Goggles
+                [3075] = 276371, -- Naigtal / Lightveil Recall Beacon
+                [3047] = 276371, -- Val / Lightveil Recall Beacon
+            },
+        },
+        {
+            type = 'list',
+            name = "阳伞",
+            icon = 644385,
+            items = {
+                212525, -- Delicate Ebony Parasol
+                212524, -- Delicate Crimson Parasol
+                212523, -- Delicate Jade Parasol
+                212500, -- Delicate Silk Parasol
+                182696, -- The Countess's Parasol
+                182695, -- Weathered Purple Parasol
+                182694, -- Stylish Black Parasol
+            },
+        },
+        {
+            type = 'list',
+            name = "假人",
+            icon = 134012,
+            items = {
+                201933, -- Black Dragon's Challenge Dummy
+                199830, -- Tuskarr Training Dummy
+                88375, -- Turnip Punching Bag
+            },
+        },
+        {
+            type = 'item',
+            name = "钝顿的丰饶旅行方式",
+            icon = 236521,
+            item = 266370, -- Dundun's Abundant Travel Method
+        },
+        {
+            type = 'item',
+            name = "地下堡机器人7001型",
+            icon = 6383538,
+            item = 230850, -- Delve-O-Bot 7001
+        },
+        {
+            type = 'item',
+            name = "地下堡行者的法缚以太之门",
+            icon = 7137505,
+            item = 243056, -- Delver's Mana-Bound Ethergate
+        },
+        {
+            type = 'item',
+            name = "垂钓翁钓鱼筏",
+            icon = 774121,
+            item = 85500, -- Anglers Fishing Raft
+        },
+        {
+            type = 'item',
+            name = "发条式火车破坏者",
+            icon = 134152,
+            item = 45057, -- Wind-Up Train Wrecker
+        },
+        {
+            type = 'item',
+            name = "眼里只有你",
+            icon = 3557126,
+            item = 210974, -- Eyes For You Only
+        },
+        {
+            type = 'item',
+            name = "虚灵幻化师",
+            icon = 1723993,
+            item = 206268, -- Ethereal Transmogrifier
+        },
+        {
+            type = 'item',
+            name = "柔软的泡沫塑料剑",
+            icon = 252282,
+            item = 137663, -- Soft Foam Sword
+        },
+        {
+            type = 'item',
+            name = "整体缩小仪",
+            icon = 801002,
+            item = 97919, -- Whole-Body Shrinka'
+        },
+        {
+            type = 'spell',
+            name = "战团银行距离抑制器",
+            icon = 4914670,
+            spell = 460905, -- Warband Bank Distance Inhibitor
+        },
+        {
+            type = 'spell',
+            name = "瞬息全战团地图",
+            icon = 237387,
+            spell = 431280, -- Warband Map to Everywhere All At Once
+        },
+    },
+}
+
+---@class QuickMacroDataCorpseToy: QuickMacroData
+---@field toyList number[]
+---@field updateFunc fun(button: QuickMacroButton, data: self, inCombat: boolean): boolean
+---@field displayFunc fun(button: QuickMacroButton, data: self): nil
+---@field clickFunc fun(self: QuickMacroButton, button: string, down: boolean): nil
+QM.MacroButtons.CorpseToy = {
+    name = "友军尸体玩具",
+    index = 7,
+
+    updateEvent = {
+        ['PLAYER_ENTERING_WORLD'] = true,
+        ['SPELL_UPDATE_COOLDOWN'] = true,
+    },
+    updateFunc = function(button, data)
+        if not button.initialized then
+            button:SetAttribute('*type1', 'toy')
+            button:HookScript('OnClick', data.clickFunc)
+            button.count:Hide()
+
+            button.itemDisplay.noneIsToy = true
+
+            button.initialized = true
+        end
+
+        local now = GetTime()
+
+        if button.itemDisplay.none then
+            local startTime, duration, enable = C_Item_GetItemCooldown(button.itemDisplay.none)
+            if enable and (duration == 0 or (now + 5 >= startTime + duration)) then
+                return true
+            end
+        end
+
+        local list = {}
+        for _, itemID in ipairs(data.toyList) do
+            if PlayerHasToy(itemID) then
+                local startTime, duration, enable = C_Item_GetItemCooldown(itemID)
+                if enable and (duration == 0 or (now + 5 >= startTime + duration)) then
+                    tinsert(list, itemID)
+                end
+            end
+        end
+
+        local itemID = #list > 0 and list[random(#list)] or data.toyList[1]
+        button:SetAttribute('*toy1', itemID)
+        button.itemDisplay.none = itemID
+
+        return true
+    end,
+    displayFunc = ItemDisplayFunc,
+
+    clickFunc = function(self, button, down)
+        if button == 'RightButton' and not down and not InCombatLockdown() then
+            local data = QM.MacroButtons.CorpseToy
+            local now = GetTime()
+
+            local list = {}
+            for _, itemID in ipairs(data.toyList) do
+                if PlayerHasToy(itemID) then
+                    local startTime, duration, enable = C_Item_GetItemCooldown(itemID)
+                    if enable and (duration == 0 or (now + 5 >= startTime + duration)) then
+                        tinsert(list, itemID)
+                    end
+                end
+            end
+
+            local itemID = #list > 0 and list[random(#list)] or data.toyList[1]
+            self:SetAttribute('*toy1', itemID)
+            self.itemDisplay.none = itemID
+
+            data.displayFunc(self, data)
+            ButtonOnEnter(self)
+        end
+    end,
+    toyList = {
+        ---AUTO_GENERATED LEADING QuickMacroCorpseToy
+        88589,  -- Cremating Torch
+        90175,  -- Gin-Ji Knife Set
+        119163, -- Soul Inhaler
+        163740, -- Drust Ritual Knife
+        166701, -- Warbeast Kraal Dinner Bell
+        166784, -- Narassin's Soul Gem
+        187174, -- Shaded Judgment Stone
+        194052, -- Forlorn Funeral Pall
+        200469, -- Khadgar's Disenchanting Rod
+        215145, -- Remembrance Stone
+        264666, -- Rod of Exanguishation
+        264672, -- Cosmic Ritual Stone
+        277954, -- Jaktu's Cursed Blade
+        ---AUTO_GENERATED TAILING QuickMacroCorpseToy
+    },
+}
+
+do
+    ---@param left string
+    ---@param right string
+    local function buttonSort(left, right)
+        return (QM.MacroButtons[left].index or 0) < (QM.MacroButtons[right].index or 0)
+    end
+    ---@type string[]
+    local pendingButton = {}
+
+    ---@param event string?
+    function QM:UpdateButtons(event)
+        if InCombatLockdown() then return end
+
+        local inCombat = event == 'PLAYER_REGEN_DISABLED'
+
+        wipe(pendingButton)
+        local positionUpdate = not event
+        for buttonName, button in pairs(self.buttons) do
+            local data = self.MacroButtons[buttonName]
+
+            local isShown = button:IsShown()
+            local show = isShown
+            if (
+                not event or
+                event == 'PLAYER_REGEN_DISABLED' or
+                event == 'PLAYER_REGEN_ENABLED' or
+                data.updateEvent[event]
+            ) then
+                show = data.updateFunc(button, data, inCombat)
+            end
+
+            if show then
+                positionUpdate = positionUpdate or not isShown
+                button:Show()
+
+                data.displayFunc(button, data)
+
+                tinsert(pendingButton, buttonName)
+            elseif isShown and not show then
+                positionUpdate = true
+                button:Hide()
+            end
+        end
+
+        if positionUpdate then
+            sort(pendingButton, buttonSort)
+            for index, buttonName in ipairs(pendingButton) do
+                local button = self.buttons[buttonName]
+                button:ClearAllPoints()
+                if index == 1 then
+                    button:SetPoint('LEFT')
+                else
+                    button:SetPoint('LEFT', self.buttons[pendingButton[index - 1]], 'RIGHT', 3, 0)
+                end
+            end
+        end
+    end
+end
+
+function QM:UpdateButtonsDisplay()
+    for buttonName, button in pairs(self.buttons) do
+        if button:IsShown() then
+            local data = self.MacroButtons[buttonName]
+            data.displayFunc(button, data)
+        end
+    end
+end
+
+function QM:UpdateButtonsBinding()
+    for buttonName, button in pairs(self.buttons) do
+        local bindButton = 'CLICK RhythmBoxQM' .. buttonName .. ':LeftButton'
+        local bindText = GetBindingKey(bindButton)
+
+        if not bindText then
+            bindText = ''
+        else
+            bindText = gsub(bindText, 'SHIFT--', 'S')
+            bindText = gsub(bindText, 'CTRL--', 'C')
+            bindText = gsub(bindText, 'ALT--', 'A')
+        end
+
+        button.bind:SetText(bindText)
+    end
+end
+
+function QM:UpdateLayout()
+    self.container:ClearAllPoints()
+    self.container:SetPoint('LEFT', _G.UIParent, 'CENTER', R.db.QuickMacro.PositionX, R.db.QuickMacro.PositionY)
+    self.container:SetSize(R.db.QuickMacro.ButtonSize, R.db.QuickMacro.ButtonSize)
+
+    for _, button in pairs(self.buttons) do
+        button:SetSize(R.db.QuickMacro.ButtonSize, R.db.QuickMacro.ButtonSize)
+        R:SetupFont(button.count, R.db.QuickMacro.CountFontSize)
+        R:SetupFont(button.bind, R.db.QuickMacro.BindFontSize)
+    end
+
+    for _, button in pairs(self.external) do
+        button:SetSize(R.db.QuickMacro.ButtonSize, R.db.QuickMacro.ButtonSize)
+        R:SetupFont(button.count, R.db.QuickMacro.CountFontSize)
+        R:SetupFont(button.bind, R.db.QuickMacro.BindFontSize)
+    end
+end
+
+---@param buttonName string
+---@param parent Frame?
+---@return QuickMacroButton
+function QM:CreateButton(buttonName, parent)
+    ---@type QuickMacroButton
+    local button = CreateFrame('Button', 'RhythmBoxQM' .. buttonName, parent or self.container, 'SecureActionButtonTemplate, BackdropTemplate')
+
+    button.itemDisplay = {} --[[@as QuickMacroItemDisplay]]
+
+    button:SetScript('OnEnter', ButtonOnEnter)
+    button:SetScript('OnLeave', ButtonOnLeave)
+    button:SetScript('OnUpdate', ButtonOnUpdate)
+
+    button:SetSize(R.db.QuickMacro.ButtonSize, R.db.QuickMacro.ButtonSize)
+    button:EnableMouse(true)
+    button:RegisterForClicks('AnyUp', 'AnyDown')
+    R:SetupBackdrop(button)
+    R:SetupButton(button)
+    R:RegisterNonPetBattleFrame(button, parent or self.container)
+
+    button.icon = button:CreateTexture(nil, 'OVERLAY')
+    R:SetupIcon(button.icon, button)
+
+    button.qualityOverlay = button:CreateTexture(nil, 'OVERLAY')
+    button.qualityOverlay:SetPoint("TOPLEFT", -3, 2)
+
+    button.count = button:CreateFontString(nil, 'OVERLAY')
+    button.count:SetTextColor(1, 1, 1, 1)
+    button.count:SetPoint('BOTTOMRIGHT', button, 'BOTTOMRIGHT', .5 ,0)
+    button.count:SetJustifyH('CENTER')
+    R:SetupFont(button.count, R.db.QuickMacro.CountFontSize)
+
+    button.bind = button:CreateFontString(nil, 'OVERLAY')
+    button.bind:SetTextColor(.6, .6, .6)
+    button.bind:SetPoint('TOPRIGHT', button, 'TOPRIGHT', 1 ,-3)
+    button.bind:SetJustifyH('RIGHT')
+    R:SetupFont(button.bind, R.db.QuickMacro.BindFontSize)
+
+    button.cooldown = CreateFrame('Cooldown', nil, button, 'CooldownFrameTemplate')
+    R:SetupCooldown(button.cooldown, button)
+
+    button.chargeCooldown = CreateFrame('Cooldown', nil, button, 'CooldownFrameTemplate')
+    R:SetupCooldown(button.chargeCooldown, button, 'Charge')
+
+    if parent then
+        self.external[buttonName] = button
+    else
+        self.buttons[buttonName] = button
+    end
+
+    return button
+end
+
+function QM:OnDisable()
+    self.container:Hide()
+
+    self:UnregisterAllEvents()
+end
+
+function QM:OnEnable()
+    self.container:Show()
+
+    for _, data in pairs(self.MacroButtons) do
+        for event in pairs(data.updateEvent) do
+            self:RegisterEvent(event, 'UpdateButtons')
+        end
+    end
+
+    self:RegisterEvent('PLAYER_REGEN_DISABLED', 'UpdateButtons')
+    self:RegisterEvent('PLAYER_REGEN_ENABLED', 'UpdateButtons')
+    self:RegisterEvent('MODIFIER_STATE_CHANGED', 'UpdateButtonsDisplay')
+
+    self:RegisterEvent('UPDATE_BINDINGS', 'UpdateButtonsBinding')
+
+    self:UpdateButtons()
+    self:UpdateButtonsBinding()
+end
+
+_G['BINDING_HEADER_RhythmBoxQuickMacro'] = "Rhythm Box 快速宏动作条"
+for buttonName, data in pairs(QM.MacroButtons) do
+    _G['BINDING_NAME_CLICK RhythmBoxQM' .. buttonName .. ':LeftButton'] = data.name
+end
+
+---@class RhythmBoxProfile
+local P = Engine.Profile
+---@class RhythmBoxQuickMacroProfile
+---@field Hearthstone table<number, boolean>
+P.QuickMacro = {
+    Enable = true,
+    PositionX = 450,
+    PositionY = -550,
+    ButtonSize = 40,
+    BindFontSize = 18,
+    CountFontSize = 18,
+    Hearthstone = {},
+}
+for _, itemID in ipairs(QM.MacroButtons.RandomHearthstone.hearthstoneList) do
+    P.QuickMacro.Hearthstone[itemID] = true
+end
+
+R:RegisterOptions(
+    QM,
+    "快速宏动作条",
+    function(optionName)
+        QM:UpdateLayout()
+        QM:UpdateButtons()
+    end,
+    function(options)
+        options.args = {
+            Enable = {
+                order = 1,
+                type = 'toggle',
+                name = "启用",
+            },
+            Space1 = {
+                order = 10,
+                type = 'description',
+                name = "",
+                width = 'full',
+            },
+            PositionX = {
+                order = 11,
+                type = 'range',
+                name = "水平位置",
+                min = -2048, max = 2048, step = 1,
+            },
+            PositionY = {
+                order = 12,
+                type = 'range',
+                name = "垂直位置",
+                min = -2048, max = 2048, step = 1,
+            },
+            Space2 = {
+                order = 20,
+                type = 'description',
+                name = "",
+                width = 'full',
+            },
+            ButtonSize = {
+                order = 21,
+                type = 'range',
+                name = "按钮尺寸",
+                min = 10, max = 100, step = 1,
+            },
+            BindFontSize = {
+                order = 22,
+                type = 'range',
+                min = 4, max = 40, step = 1,
+                name = "键位文字字体尺寸",
+            },
+            CountFontSize = {
+                order = 23,
+                type = 'range',
+                min = 4, max = 40, step = 1,
+                name = "物品数量字体尺寸",
+            },
+            Hearthstone = {
+                order = 30,
+                type = 'multiselect',
+                name = "随机炉石列表",
+                values = {},
+            },
+        }
+
+        for _, itemID in ipairs(QM.MacroButtons.RandomHearthstone.hearthstoneList) do
+            local itemName = C_Item_GetItemNameByID(itemID)
+            if itemName then
+                options.args.Hearthstone.values[itemID] = itemName
+            else
+                options.args.Hearthstone.values[itemID] = itemID
+
+                local item = Item:CreateFromItemID(itemID)
+                item:ContinueOnItemLoad(function()
+                    options.args.Hearthstone.values[itemID] = item:GetItemName()
+                end)
+            end
+        end
+    end
+)
+
+function QM:OnInitialize()
+    ---@type table<string, QuickMacroButton>
+    self.buttons = {}
+    ---@type table<string, QuickMacroButton>
+    self.external = {}
+
+    local container = CreateFrame('Frame', 'RhythmBoxQuickMacroContainer', _G.UIParent)
+    container:ClearAllPoints()
+    container:SetPoint('LEFT', _G.UIParent, 'CENTER', R.db.QuickMacro.PositionX, R.db.QuickMacro.PositionY)
+    container:SetSize(R.db.QuickMacro.ButtonSize, R.db.QuickMacro.ButtonSize)
+    self.container = container
+
+    for buttonName in pairs(self.MacroButtons) do
+        self:CreateButton(buttonName)
+    end
+end

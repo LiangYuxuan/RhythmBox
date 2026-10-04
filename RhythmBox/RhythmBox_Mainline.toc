@@ -12,3 +12,5 @@ Init.lua
 Media\Media.lua
 
 Core\Load_Core.xml
+
+Modules\Load_Modules.xml
