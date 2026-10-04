@@ -1,4 +1,5 @@
 {
+    "ignore": ["RhythmBox/Libs"],
     "diagnostics": {
         "enable": [
             "need-check-nil",
