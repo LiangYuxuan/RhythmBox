@@ -13,4 +13,6 @@ Media\Media.lua
 
 Core\Load_Core.xml
 
+Database\Load_Database.xml
+
 Modules\Load_Modules.xml

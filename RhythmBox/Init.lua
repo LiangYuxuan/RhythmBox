@@ -30,6 +30,10 @@ Libs.LOR = LibStub('LibOpenRaid-1.0')
 local P = {}
 Engine.Profile = P
 
+---@class RhythmBoxDatabase
+local Database = {}
+Engine.Database = Database
+
 ---@class RhythmBoxCore: AceAddon-3.0 & AceEvent-3.0
 local R = Libs.AceAddon:NewAddon(addonName, 'AceEvent-3.0')
 Engine.Core = R
