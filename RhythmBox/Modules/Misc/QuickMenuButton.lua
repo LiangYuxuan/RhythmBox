@@ -145,7 +145,6 @@ end
 local function HandleMenu(rootDescription, name, realm)
     local fullName = name .. '-' .. realm
 
-    ---@type string?
     local isInGuild = GetGuildInfo(realm == R.playerRealm and name or fullName)
 
     rootDescription:CreateDivider()
@@ -166,6 +165,7 @@ local function HandleMenu(rootDescription, name, realm)
     rootDescription:CreateButton("复制 Logs 地址", ShowStaticPopupDialog, wclURL)
     rootDescription:CreateButton("复制 RIO 地址", ShowStaticPopupDialog, rioURL)
 
+    ---@diagnostic disable-next-line: redundant-condition
     if not isInGuild then
         rootDescription:CreateButton(INVITE_TO_GUILD, C_GuildInfo_Invite, fullName)
     end
