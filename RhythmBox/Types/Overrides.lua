@@ -1,0 +1,11 @@
+---@diagnostic disable-next-line: class-shadows-builtin
+---@class osdate
+---@field year number
+---@field month number
+---@field day number
+---@field yday number
+---@field wday number
+---@field hour number
+---@field min number
+---@field sec number
+---@field isdst boolean
