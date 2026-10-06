@@ -9,7 +9,10 @@ local issecretvalue, pairs = issecretvalue, pairs
 local C_PetBattles_IsInBattle = C_PetBattles.IsInBattle
 local C_SpecializationInfo_GetSpecialization = C_SpecializationInfo.GetSpecialization
 local C_SpecializationInfo_GetSpecializationInfo = C_SpecializationInfo.GetSpecializationInfo
+local GetInstanceInfo = GetInstanceInfo
 local UnitGroupRolesAssigned = UnitGroupRolesAssigned
+local UnitGUID = UnitGUID
+local UnitLevel = UnitLevel
 
 ---@type table<Frame, Frame>
 local nonPetBattleFrames = {}
