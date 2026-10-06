@@ -16,6 +16,7 @@ local HideUIPanel = HideUIPanel
 local Settings_OpenToCategory = Settings.OpenToCategory
 
 ---@class RhythmBoxOptionsTable: AceConfig.OptionsTable
+---@field name string
 R.Options = {
     name = R.Title,
     type = 'group',
@@ -151,9 +152,8 @@ function R:OptionsOnEnable()
 
     AceConfig:RegisterOptionsTable(self.Name, self.Options)
 
+    ---@type Frame, string
     local _, categoryID = AceConfigDialog:AddToBlizOptions(self.Name, self.Title, nil, 'General')
-    ---@cast _ Frame
-    ---@cast categoryID string
 
     AceConfigDialog:AddToBlizOptions(self.Name, "配置文件", self.Title, 'Profile')
 
