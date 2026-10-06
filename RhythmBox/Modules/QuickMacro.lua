@@ -5,8 +5,9 @@ local QM = R:NewModule('QuickMacro', 'AceEvent-3.0')
 
 -- Lua functions
 local _G = _G
-local date, format, gsub, ipairs, pairs, tinsert = date, format, gsub, ipairs, pairs, tinsert
-local random, select, sort, tostring, wipe, unpack = random, select, sort, tostring, wipe, unpack
+local date, format, gsub, ipairs, pairs = date, format, gsub, ipairs, pairs
+local random, select, sort, tostring, wipe = random, select, sort, tostring, wipe
+local table_insert = table.insert
 
 -- WoW API / Variables
 local C_AddOns_LoadAddOn = C_AddOns.LoadAddOn
@@ -43,8 +44,6 @@ local IsShiftKeyDown = IsShiftKeyDown
 local PlayerHasToy = PlayerHasToy
 local UnitCanAttack = UnitCanAttack
 
-local CooldownFrame_Clear = CooldownFrame_Clear
-local CooldownFrame_Set = CooldownFrame_Set
 local Item = Item
 local MenuUtil_CreateContextMenu = MenuUtil.CreateContextMenu
 local RegisterStateDriver = RegisterStateDriver
@@ -52,6 +51,10 @@ local SecureHandlerSetFrameRef = SecureHandlerSetFrameRef
 local tContains = tContains
 
 ---@class QuickMacroItemDisplay
+---@correlated ctrl, ctrlIsToy
+---@correlated shift, shiftIsToy
+---@correlated alt, altIsToy
+---@correlated none, noneIsToy
 ---@field ctrl number?
 ---@field shift number?
 ---@field alt number?
@@ -79,8 +82,8 @@ local tContains = tContains
 ---@field name string
 ---@field index number
 ---@field updateEvent table<string, true>
----@field updateFunc fun(button: QuickMacroButton, data: QuickMacroData, inCombat: boolean): boolean
----@field displayFunc fun(button: QuickMacroButton, data: QuickMacroData): nil
+---@field updateFunc fun(button: QuickMacroButton, data: self, inCombat: boolean): boolean
+---@field displayFunc fun(button: QuickMacroButton, data: self): nil
 
 ---@class QuickMacroItemList
 ---@field ctrlCombat number[]?
@@ -99,8 +102,8 @@ local tContains = tContains
 
 ---@class QuickMacroDataItemList: QuickMacroData
 ---@field itemList QuickMacroItemList | QuickMacroRoleItemList
----@field updateFunc fun(button: QuickMacroButton, data: QuickMacroDataItemList, inCombat: boolean): boolean
----@field displayFunc fun(button: QuickMacroButton, data: QuickMacroDataItemList): nil
+---@field updateFunc fun(button: QuickMacroButton, data: self, inCombat: boolean): boolean
+---@field displayFunc fun(button: QuickMacroButton, data: self): nil
 
 ---@class TableContainsItemList
 ---@field itemList QuickMacroItemList | QuickMacroRoleItemList | nil
@@ -120,7 +123,6 @@ local function ButtonOnEnter(self)
     elseif self.displayType == 'spell' and self.spellID then
         _G.GameTooltip:SetSpellByID(self.spellID)
     elseif self.displayType == 'mount' and self.spellID then
-        ---@diagnostic disable-next-line: redundant-parameter
         _G.GameTooltip:SetMountBySpellID(self.spellID)
     end
 
@@ -136,61 +138,98 @@ end
 local function ButtonOnUpdate(self)
     if not self.displayType then return end
 
-    if self.displayType == 'item' or self.displayType == 'toy' then
+    if (self.displayType == 'item' or self.displayType == 'toy') and self.itemID then
         local startTime, duration, enable = C_Item_GetItemCooldown(self.itemID)
 
-        CooldownFrame_Set(self.cooldown, startTime, duration, enable)
-        CooldownFrame_Clear(self.chargeCooldown)
-
-        if duration and duration > 0 and not enable then
-            self.icon:SetVertexColor(.4, .4, .4)
-            return
-        end
-    elseif self.displayType == 'spell' then
-        local cooldownDuration = C_Spell_GetSpellCooldownDuration(self.spellID)
-        local chargeDuration = C_Spell_GetSpellChargeDuration(self.spellID)
-
-        if cooldownDuration then
-            self.cooldown:SetCooldownFromDurationObject(cooldownDuration)
+        if enable and startTime > 0 and duration > 0 then
+            self.cooldown:SetCooldown(startTime, duration)
         else
             self.cooldown:Clear()
         end
 
-        if chargeDuration then
-            self.chargeCooldown:SetCooldownFromDurationObject(chargeDuration)
+        self.chargeCooldown:Clear()
+
+        if not enable and duration > 0 then
+            self.icon:SetVertexColor(0.4, 0.4, 0.4)
+        elseif (
+            (not InCombatLockdown() or UnitCanAttack('player', 'target')) and
+            C_Item_IsItemInRange(self.itemID, 'target') == false
+        ) then
+            self.icon:SetVertexColor(0.8, 0.1, 0.1)
         else
+            self.icon:SetVertexColor(1, 1, 1)
+        end
+    elseif (self.displayType == 'spell' or self.displayType == 'mount') and self.spellID then
+        if self.displayType == 'spell' then
+            local cooldownDuration = C_Spell_GetSpellCooldownDuration(self.spellID)
+            local chargeDuration = C_Spell_GetSpellChargeDuration(self.spellID)
+
+            ---@diagnostic disable-next-line: redundant-condition
+            if cooldownDuration then
+                self.cooldown:SetCooldownFromDurationObject(cooldownDuration)
+            else
+                self.cooldown:Clear()
+            end
+
+            ---@diagnostic disable-next-line: redundant-condition
+            if chargeDuration then
+                self.chargeCooldown:SetCooldownFromDurationObject(chargeDuration)
+            else
+                self.chargeCooldown:Clear()
+            end
+        else
+            self.cooldown:Clear()
             self.chargeCooldown:Clear()
         end
-    end
 
-    if (
-        (self.displayType == 'item' or self.displayType == 'toy') and
-        (not InCombatLockdown() or UnitCanAttack('player', 'target')) and
-        C_Item_IsItemInRange(self.itemID, 'target') == false
-    ) then
-        self.icon:SetVertexColor(.8, .1, .1)
-    elseif self.displayType == 'spell' or self.displayType == 'mount' then
         local inRange = C_Spell_IsSpellInRange(self.spellID, 'target')
         local usable, noMana = C_Spell_IsSpellUsable(self.spellID)
         if inRange == false then
-            self.icon:SetVertexColor(.8, .1, .1)
+            self.icon:SetVertexColor(0.8, 0.1, 0.1)
         elseif usable then
             self.icon:SetVertexColor(1, 1, 1)
         elseif noMana then
-            self.icon:SetVertexColor(.5, .5, 1)
+            self.icon:SetVertexColor(0.5, 0.5, 1)
         else
-            self.icon:SetVertexColor(.4, .4, .4)
+            self.icon:SetVertexColor(0.4, 0.4, 0.4)
         end
     else
         self.icon:SetVertexColor(1, 1, 1)
     end
 end
 
+---@class QuickMacroItemListCondition
+---@field key keyof QuickMacroItemList
+---@field combatKey keyof QuickMacroItemList
+---@field prefix string
+---@field func fun(): boolean
+
+---@type QuickMacroItemListCondition[]
 local itemListConditions = {
-    { 'ctrl', 'ctrlCombat', 'ctrl-', function() return IsControlKeyDown() end },
-    { 'shift', 'shiftCombat', 'shift-', function() return IsShiftKeyDown() end },
-    { 'alt', 'altCombat', 'alt-', function() return IsAltKeyDown() end },
-    { 'none', 'combat', '*', function() return true end },
+    {
+        key = 'ctrl',
+        combatKey = 'ctrlCombat',
+        prefix = 'ctrl-',
+        func = function() return IsControlKeyDown() end,
+    },
+    {
+        key = 'shift',
+        combatKey = 'shiftCombat',
+        prefix = 'shift-',
+        func = function() return IsShiftKeyDown() end,
+    },
+    {
+        key = 'alt',
+        combatKey = 'altCombat',
+        prefix = 'alt-',
+        func = function() return IsAltKeyDown() end,
+    },
+    {
+        key = 'none',
+        combatKey = 'combat',
+        prefix = '*',
+        func = function() return true end,
+    },
 }
 
 ---@param button QuickMacroButton
@@ -202,17 +241,17 @@ local function ItemListUpdateFunc(button, data, inCombat)
 
     local itemList = data.itemList and data.itemList[R.playerRole] or data.itemList
     ---@cast itemList QuickMacroItemList
-    if not itemList or not itemList.none or #itemList.none == 0 then return end
+    if not itemList or not itemList.none or #itemList.none == 0 then return nil end
 
     for _, condition in ipairs(itemListConditions) do
-        local key, combatKey, prefix = unpack(condition)
+        local key, combatKey, prefix = condition.key, condition.combatKey, condition.prefix
         ---@type number[]?
         local slotList = inCombat and itemList[combatKey] or itemList[key]
         if slotList then
             local selected = slotList[1]
             for _, itemID in ipairs(slotList) do
                 local itemCount = C_Item_GetItemCount(itemID)
-                if itemCount and itemCount > 0 then
+                if itemCount > 0 then
                     selected = itemID
                     break
                 end
@@ -233,7 +272,7 @@ local function ItemDisplayFunc(button)
     local itemIsToy = button.itemDisplay.noneIsToy
 
     for _, condition in ipairs(itemListConditions) do
-        local key, _, _, func = unpack(condition)
+        local key, func = condition.key, condition.func
         if button.itemDisplay[key] and func() then
             itemID = button.itemDisplay[key] --[[@as number]]
             itemIsToy = button.itemDisplay[key .. 'IsToy'] --[[@as boolean]]
@@ -254,7 +293,7 @@ local function ItemDisplayFunc(button)
         button.displayType = itemIsToy and 'toy' or 'item'
         button.itemID = itemID
 
-        local itemCount = C_Item_GetItemCount(itemID, nil, true) or 0
+        local itemCount = C_Item_GetItemCount(itemID, nil, true)
         button.count:SetText(tostring(itemCount))
 
         local rarity = C_Item_GetItemQualityByID(itemID)
@@ -306,10 +345,11 @@ QM.MacroButtons = {}
 ---@class QuickMacroDataMount: QuickMacroData
 ---@field shift number?
 ---@field alt number?
----@field updateFunc fun(button: QuickMacroButtonMount, data: QuickMacroDataMount, inCombat: boolean): boolean
----@field displayFunc fun(button: QuickMacroButtonMount, data: QuickMacroDataMount): nil
+---@field list number[]
+---@field updateFunc fun(button: QuickMacroButtonMount, data: self, inCombat: boolean): boolean
+---@field displayFunc fun(button: QuickMacroButtonMount, data: self): nil
 ---@field clickFunc fun(button: QuickMacroButtonMount, button: string, down: boolean): nil
----@field menuGenerator fun(owner: QuickMacroButtonMount, rootDescription: table): nil
+---@field menuGenerator fun(owner: QuickMacroButtonMount, rootDescription: RootMenuDescriptionProxy): nil
 QM.MacroButtons.RandomMount = {
     name = "随机坐骑",
     index = 1,
@@ -320,6 +360,7 @@ QM.MacroButtons.RandomMount = {
     ---@param button QuickMacroButtonMount
     ---@param data QuickMacroDataMount
     ---@param inCombat boolean
+    ---@return boolean
     updateFunc = function(button, data, inCombat)
         if not button.initialized then
             if not _G.MountJournal then
@@ -360,7 +401,7 @@ QM.MacroButtons.RandomMount = {
         local isInUndermine = false
         local zoneAbilities = C_ZoneAbility_GetActiveAbilities()
         for _, zoneAbility in ipairs(zoneAbilities) do
-            if zoneAbility.spellID and C_SpellBook_FindSpellOverrideByID(zoneAbility.spellID) == 460013 then -- G-99 Breakneck
+            if C_SpellBook_FindSpellOverrideByID(zoneAbility.spellID) == 460013 then -- G-99 Breakneck
                 isInUndermine = true
                 break
             end
@@ -385,7 +426,6 @@ QM.MacroButtons.RandomMount = {
         else
             local timestamp = GetServerTime()
             local timeData = date('*t', timestamp)
-            ---@type boolean
             local duringHallowsEnd = (
                 (
                     timeData.year == 2024 and (
@@ -467,18 +507,19 @@ QM.MacroButtons.RandomMount = {
         end
     end,
     ---@param _ QuickMacroButtonMount
-    ---@param rootDescription table
+    ---@param rootDescription RootMenuDescriptionProxy
     menuGenerator = function(_, rootDescription)
         for _, mountID in ipairs(QM.MacroButtons.RandomMount.list) do
             local name, _, iconID, _, _, _, _, _, _, _, isCollected = C_MountJournal_GetMountInfoByID(mountID)
             if isCollected then
                 local button = rootDescription:CreateButton(name, C_MountJournal_SummonByID, mountID)
+                ---@param self ElementMenuFrame
                 button:AddInitializer(function(self)
                     local texture = self:AttachTexture()
                     texture:SetPoint('RIGHT')
                     texture:SetSize(16, 16)
                     texture:SetTexture(iconID)
-                    texture:SetTexCoord(.1, .9, .1, .9)
+                    texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
 
                     local fontString = self.fontString
                     fontString:SetPoint('RIGHT', texture, 'LEFT')
@@ -517,6 +558,10 @@ QM.MacroButtons.RandomHearthstone = {
     updateEvent = {
         ['PLAYER_ENTERING_WORLD'] = true,
     },
+    ---@param button QuickMacroButton
+    ---@param data QuickMacroDataHearthstone
+    ---@param inCombat boolean
+    ---@return boolean
     updateFunc = function(button, data, inCombat)
         if not button.initialized then
             if PlayerHasToy(140192) then -- Dalaran Hearthstone
@@ -546,10 +591,11 @@ QM.MacroButtons.RandomHearthstone = {
             button.initialized = true
         end
 
+        ---@type number[]
         local list = {}
         for _, itemID in ipairs(data.hearthstoneList) do
             if R.db.QuickMacro.Hearthstone[itemID] and PlayerHasToy(itemID) then
-                tinsert(list, itemID)
+                table_insert(list, itemID)
             end
         end
         if #list > 0 then
@@ -569,14 +615,18 @@ QM.MacroButtons.RandomHearthstone = {
     end,
     displayFunc = ItemDisplayFunc,
 
+    ---@param self QuickMacroButton
+    ---@param button string
+    ---@param down boolean
     clickFunc = function(self, button, down)
         if button == 'RightButton' and not down and not InCombatLockdown() then
             local data = QM.MacroButtons.RandomHearthstone
 
+            ---@type number[]
             local list = {}
             for _, itemID in ipairs(data.hearthstoneList) do
                 if R.db.QuickMacro.Hearthstone[itemID] and PlayerHasToy(itemID) then
-                    tinsert(list, itemID)
+                    table_insert(list, itemID)
                 end
             end
             if #list > 0 then
@@ -811,15 +861,18 @@ QM.MacroButtons.CombatPotion = {
     },
 }
 
+---@class QuickMacroDataConsumableSubDynamicItemLists: TableContainsItemList
+---@field source { itemID: number, equippedItemInvTypes?: string[], equippedItemSubclass?: number[] }[]
+
 ---@class QuickMacroDataConsumableSubDynamic: QuickMacroData
 ---@field macroTemplate string?
----@field itemLists { itemList: QuickMacroItemList, source: { itemID: number, equippedItemInvTypes?: string[], equippedItemSubclass?: number[] }[] }
----@field choose fun(itemLists: { itemList: QuickMacroItemList, source: { itemID: number, equippedItemInvTypes?: string[], equippedItemSubclass?: number[] }[] }): nil
+---@field itemLists QuickMacroDataConsumableSubDynamicItemLists
+---@field choose fun(itemLists: QuickMacroDataConsumableSubDynamicItemLists): nil
 
 ---@alias QuickMacroDataConsumableSub TableContainsItemList | QuickMacroDataConsumableSubDynamic
 
 ---@class QuickMacroButtonConsumable: QuickMacroButton
----@field subButtons [QuickMacroButton, QuickMacroDataConsumableSub][]
+---@field subButtons { button: QuickMacroButton, data: QuickMacroDataConsumableSub }[]
 
 ---@class QuickMacroDataConsumable: QuickMacroData
 ---@field onClickSnippet string
@@ -838,6 +891,10 @@ QM.MacroButtons.Consumable = {
         ['PLAYER_SPECIALIZATION_CHANGED'] = true,
         ['PLAYER_EQUIPMENT_CHANGED'] = true,
     },
+    ---@param button QuickMacroButtonConsumable
+    ---@param data QuickMacroDataConsumable
+    ---@param inCombat boolean
+    ---@return boolean
     updateFunc = function(button, data, inCombat)
         if not button.initialized then
             ---@class QuickMacroConsumableSubFrame: Frame
@@ -858,7 +915,7 @@ QM.MacroButtons.Consumable = {
                 subButton:SetPoint('BOTTOM', prev, 'TOP', 0, 3)
                 prev = subButton
 
-                tinsert(button.subButtons, { subButton, subButtonData })
+                table_insert(button.subButtons, { button = subButton, data = subButtonData })
             end
 
             ---@class QuickMacroConsumableOverlay: Button & SecureHandlerStateTemplate & SecureHandlerClickTemplate
@@ -881,15 +938,17 @@ QM.MacroButtons.Consumable = {
         end
 
         for _, subButtonArray in ipairs(button.subButtons) do
-            local subButton, subButtonData = subButtonArray[1], subButtonArray[2]
+            local subButton, subButtonData = subButtonArray.button, subButtonArray.data
 
             if subButtonData.choose then
+                ---@cast subButtonData QuickMacroDataConsumableSubDynamic
                 subButtonData.choose(subButtonData.itemLists)
 
                 local show = ItemListUpdateFunc(subButton, subButtonData.itemLists, inCombat)
                 subButton:SetShown(show)
 
                 if show and subButtonData.macroTemplate then
+                    ---@type string
                     local itemString = subButton:GetAttribute('*item1')
                     local macroText = format(subButtonData.macroTemplate, itemString)
 
@@ -905,12 +964,13 @@ QM.MacroButtons.Consumable = {
 
         return true
     end,
+    ---@param button QuickMacroButtonConsumable
     displayFunc = function(button)
         button:SetBackdropBorderColor(0, 112 / 255, 221 / 255)
         button.icon:SetTexture(237271)
 
         for _, subButtonArray in ipairs(button.subButtons) do
-            local subButton = subButtonArray[1]
+            local subButton = subButtonArray.button
             ItemDisplayFunc(subButton)
         end
     end,
@@ -1045,10 +1105,15 @@ QM.MacroButtons.Consumable = {
             },
         },
         {
+            ---@param itemLists QuickMacroDataConsumableSubDynamicItemLists
             choose = function(itemLists)
-                wipe(itemLists.itemList.none)
+                ---@type QuickMacroItemList
+                local itemList = itemLists.itemList
+
+                wipe(itemList.none)
 
                 local itemID = GetInventoryItemID('player', 16)
+                ---@diagnostic disable-next-line: redundant-condition
                 if not itemID then return end
 
                 local _, _, _, itemEquipLoc, _, _, subClassID = C_Item_GetItemInfoInstant(itemID)
@@ -1058,7 +1123,7 @@ QM.MacroButtons.Consumable = {
                         (not data.equippedItemInvTypes or tContains(data.equippedItemInvTypes, itemEquipLoc)) and
                         (not data.equippedItemSubclass or tContains(data.equippedItemSubclass, subClassID))
                     ) then
-                        tinsert(itemLists.itemList.none, data.itemID)
+                        table_insert(itemList.none, data.itemID)
                     end
                 end
             end,
@@ -1163,10 +1228,15 @@ QM.MacroButtons.Consumable = {
             },
         },
         {
+            ---@param itemLists QuickMacroDataConsumableSubDynamicItemLists
             choose = function(itemLists)
-                wipe(itemLists.itemList.none)
+                ---@type QuickMacroItemList
+                local itemList = itemLists.itemList
+
+                wipe(itemList.none)
 
                 local itemID = GetInventoryItemID('player', 17)
+                ---@diagnostic disable-next-line: redundant-condition
                 if not itemID then return end
 
                 local _, _, _, itemEquipLoc, _, _, subClassID = C_Item_GetItemInfoInstant(itemID)
@@ -1176,7 +1246,7 @@ QM.MacroButtons.Consumable = {
                         (not data.equippedItemInvTypes or tContains(data.equippedItemInvTypes, itemEquipLoc)) and
                         (not data.equippedItemSubclass or tContains(data.equippedItemSubclass, subClassID))
                     ) then
-                        tinsert(itemLists.itemList.none, data.itemID)
+                        table_insert(itemList.none, data.itemID)
                     end
                 end
             end,
@@ -1287,7 +1357,7 @@ QM.MacroButtons.Consumable = {
 ---@field type 'auto'
 ---@field name string
 ---@field icon number
----@field items table<number, number>
+---@field items table<number, number?>
 
 ---@class QuickMacroDataUtilityToyItemDataList
 ---@field type 'list'
@@ -1320,7 +1390,7 @@ QM.MacroButtons.Consumable = {
 ---@field updateFunc fun(button: QuickMacroButtonUtilityToy, data: self, inCombat: boolean): boolean
 ---@field displayFunc fun(button: QuickMacroButtonUtilityToy, data: self): nil
 ---@field clickFunc fun(button: QuickMacroButtonUtilityToy, button: string, down: boolean): nil
----@field menuGenerator fun(owner: QuickMacroButtonUtilityToy, rootDescription: table): nil
+---@field menuGenerator fun(owner: QuickMacroButtonUtilityToy, rootDescription: RootMenuDescriptionProxy): nil
 ---@field isSelected fun(index: number): boolean
 ---@field setSelected fun(index: number): nil
 QM.MacroButtons.UtilityToy = {
@@ -1331,6 +1401,9 @@ QM.MacroButtons.UtilityToy = {
         ['PLAYER_ENTERING_WORLD'] = true,
         ['ZONE_CHANGED_NEW_AREA'] = true,
     },
+    ---@param button QuickMacroButtonUtilityToy
+    ---@param data QuickMacroDataUtilityToy
+    ---@return boolean
     updateFunc = function(button, data)
         if not button.initialized then
             -- item:156833 (Katy's Stampwhistle)
@@ -1357,7 +1430,7 @@ QM.MacroButtons.UtilityToy = {
         end
 
         local info = C_TradeSkillUI_GetProfessionInfoBySkillLineID(2504)
-        local isMOLLEUsable = info and info.skillLevel >= 50
+        local isMOLLEUsable = info.skillLevel >= 50
         local isMOLLEAvailable = isMOLLEUsable and PlayerHasToy(40768)
         if isMOLLEAvailable then
             local _, duration, enable = C_Item_GetItemCooldown(40768)
@@ -1378,7 +1451,7 @@ QM.MacroButtons.UtilityToy = {
         local usingData = data.list[button.usingIndex]
         if usingData.type == 'auto' then
             local instanceID = select(8, GetInstanceInfo())
-            local itemID = instanceID and usingData.items[instanceID]
+            local itemID = usingData.items[instanceID]
             if itemID then
                 button:SetAttribute('*type1', 'toy')
                 button:SetAttribute('*toy1', itemID)
@@ -1418,6 +1491,7 @@ QM.MacroButtons.UtilityToy = {
 
         return true
     end,
+    ---@param button QuickMacroButtonUtilityToy
     displayFunc = function(button)
         if button.noneSpellID then
             button.displayType = 'spell'
@@ -1430,21 +1504,27 @@ QM.MacroButtons.UtilityToy = {
         end
     end,
 
+    ---@param self QuickMacroButtonUtilityToy
+    ---@param button string
+    ---@param down boolean
     clickFunc = function(self, button, down)
         if button == 'RightButton' and not down then
             MenuUtil_CreateContextMenu(self, QM.MacroButtons.UtilityToy.menuGenerator)
         end
     end,
+    ---@param _ QuickMacroButtonUtilityToy
+    ---@param rootDescription RootMenuDescriptionProxy
     menuGenerator = function(_, rootDescription)
         local data = QM.MacroButtons.UtilityToy
         for index, entry in ipairs(QM.MacroButtons.UtilityToy.list) do
             local radio = rootDescription:CreateRadio(entry.name, data.isSelected, data.setSelected, index)
+            ---@param self ElementMenuFrame
             radio:AddInitializer(function(self)
                 local texture = self:AttachTexture()
                 texture:SetPoint('RIGHT')
                 texture:SetSize(16, 16)
                 texture:SetTexture(entry.icon)
-                texture:SetTexCoord(.1, .9, .1, .9)
+                texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
 
                 local fontString = self.fontString
                 fontString:SetPoint('RIGHT', texture, 'LEFT')
@@ -1454,9 +1534,12 @@ QM.MacroButtons.UtilityToy = {
             end)
         end
     end,
+    ---@param index number
+    ---@return boolean
     isSelected = function(index)
         return QM.buttons.UtilityToy.usingIndex == index
     end,
+    ---@param index number
     setSelected = function(index)
         local data = QM.MacroButtons.UtilityToy
         local button = QM.buttons.UtilityToy
@@ -1586,6 +1669,9 @@ QM.MacroButtons.CorpseToy = {
         ['PLAYER_ENTERING_WORLD'] = true,
         ['SPELL_UPDATE_COOLDOWN'] = true,
     },
+    ---@param button QuickMacroButton
+    ---@param data QuickMacroDataCorpseToy
+    ---@return boolean
     updateFunc = function(button, data)
         if not button.initialized then
             button:SetAttribute('*type1', 'toy')
@@ -1611,7 +1697,7 @@ QM.MacroButtons.CorpseToy = {
             if PlayerHasToy(itemID) then
                 local startTime, duration, enable = C_Item_GetItemCooldown(itemID)
                 if enable and (duration == 0 or (now + 5 >= startTime + duration)) then
-                    tinsert(list, itemID)
+                    table_insert(list, itemID)
                 end
             end
         end
@@ -1624,6 +1710,9 @@ QM.MacroButtons.CorpseToy = {
     end,
     displayFunc = ItemDisplayFunc,
 
+    ---@param self QuickMacroButton
+    ---@param button string
+    ---@param down boolean
     clickFunc = function(self, button, down)
         if button == 'RightButton' and not down and not InCombatLockdown() then
             local data = QM.MacroButtons.CorpseToy
@@ -1634,7 +1723,7 @@ QM.MacroButtons.CorpseToy = {
                 if PlayerHasToy(itemID) then
                     local startTime, duration, enable = C_Item_GetItemCooldown(itemID)
                     if enable and (duration == 0 or (now + 5 >= startTime + duration)) then
-                        tinsert(list, itemID)
+                        table_insert(list, itemID)
                     end
                 end
             end
@@ -1669,8 +1758,9 @@ QM.MacroButtons.CorpseToy = {
 do
     ---@param left string
     ---@param right string
+    ---@return boolean
     local function buttonSort(left, right)
-        return (QM.MacroButtons[left].index or 0) < (QM.MacroButtons[right].index or 0)
+        return QM.MacroButtons[left].index < QM.MacroButtons[right].index
     end
     ---@type string[]
     local pendingButton = {}
@@ -1703,7 +1793,7 @@ do
 
                 data.displayFunc(button, data)
 
-                tinsert(pendingButton, buttonName)
+                table_insert(pendingButton, buttonName)
             elseif isShown and not show then
                 positionUpdate = true
                 button:Hide()
@@ -1797,12 +1887,12 @@ function QM:CreateButton(buttonName, parent)
 
     button.count = button:CreateFontString(nil, 'OVERLAY')
     button.count:SetTextColor(1, 1, 1, 1)
-    button.count:SetPoint('BOTTOMRIGHT', button, 'BOTTOMRIGHT', .5 ,0)
+    button.count:SetPoint('BOTTOMRIGHT', button, 'BOTTOMRIGHT', 0.5 ,0)
     button.count:SetJustifyH('CENTER')
     R:SetupFont(button.count, R.db.QuickMacro.CountFontSize)
 
     button.bind = button:CreateFontString(nil, 'OVERLAY')
-    button.bind:SetTextColor(.6, .6, .6)
+    button.bind:SetTextColor(0.6, 0.6, 0.6)
     button.bind:SetPoint('TOPRIGHT', button, 'TOPRIGHT', 1 ,-3)
     button.bind:SetJustifyH('RIGHT')
     R:SetupFont(button.bind, R.db.QuickMacro.BindFontSize)
@@ -1872,10 +1962,12 @@ end
 R:RegisterOptions(
     QM,
     "快速宏动作条",
+    ---@param optionName string?
     function(optionName)
         QM:UpdateLayout()
         QM:UpdateButtons()
     end,
+    ---@param options AceConfig.OptionsTable
     function(options)
         options.args = {
             Enable = {
