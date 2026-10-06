@@ -6,5 +6,6 @@
 >
 	<Include file="Misc\Load_Misc.xml"/>
 
+	<Script file='AutoButton.lua'/>
 	<Script file='QuickMacro.lua'/>
 </Ui>
