@@ -107,7 +107,7 @@ function AL:UpdateLogging(event, ...)
     self.isInstanceMPCompleted = false
 end
 
-function AL:CHALLENGE_MODE_COMPLETED()
+function AL:UpdateMPCompleted()
     self.isInstanceMPCompleted = true
 end
 
@@ -130,7 +130,7 @@ function AL:OnEnable()
     self:RegisterEvent('PLAYER_ENTERING_WORLD', 'UpdateLogging')
     self:RegisterEvent('ZONE_CHANGED_NEW_AREA', 'UpdateLogging')
     self:RegisterEvent('CHALLENGE_MODE_START', 'UpdateLogging')
-    self:RegisterEvent('CHALLENGE_MODE_COMPLETED')
+    self:RegisterEvent('CHALLENGE_MODE_COMPLETED', 'UpdateMPCompleted')
 end
 
 function AL:OnInitialize()
