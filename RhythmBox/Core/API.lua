@@ -40,7 +40,7 @@ function R:UpdateRole()
     local role = UnitGroupRolesAssigned('player')
 
     ---@type string
-    self.playerRole = (not issecretvalue(role) and role ~= 'NONE') and role or self.playerSpecRole or 'NONE'
+    self.playerRole = (not issecretvalue(role) and role ~= 'NONE') and role or self.playerSpecRole
 end
 
 function R:UpdateSpec()
