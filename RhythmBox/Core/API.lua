@@ -44,11 +44,11 @@ function R:UpdateRole()
 end
 
 function R:UpdateSpec()
+    ---@type number
     self.playerSpec = C_SpecializationInfo_GetSpecialization()
 
-    if self.playerSpec then
-        self.playerSpecID, self.playerSpecName, self.playerSpecDesc, self.playerSpecIcon, self.playerSpecRole = C_SpecializationInfo_GetSpecializationInfo(self.playerSpec)
-    end
+    ---@type number, string, string, number, string, number
+    self.playerSpecID, self.playerSpecName, self.playerSpecDesc, self.playerSpecIcon, self.playerSpecRole, self.playerSpecPrimaryStat = C_SpecializationInfo_GetSpecializationInfo(self.playerSpec)
 
     self:UpdateRole()
 end

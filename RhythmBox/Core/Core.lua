@@ -21,7 +21,10 @@ R.isDeveloper = true
 
 R.Name = addonName
 R.Title = '|cFF70B8FFRhythm Box|r'
-R.playerFullName = UnitName('player') .. '-' .. GetRealmName()
+---@type string
+R.playerName = UnitName('player')
+R.playerRealm = GetRealmName()
+R.playerFullName = R.playerName .. '-' .. R.playerRealm
 ---@type string
 R.playerGUID = UnitGUID('player')
 R.playerFaction, R.playerLocalizedFaction = UnitFactionGroup('player')
