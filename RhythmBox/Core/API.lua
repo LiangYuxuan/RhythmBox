@@ -53,11 +53,28 @@ function R:UpdateSpec()
     self:UpdateRole()
 end
 
+function R:UpdateInstance()
+    ---@type string, string, number, string, number, number, boolean?, number, number, number?
+    self.playerInstanceName, self.playerInstanceType, self.playerInstanceDifficultyID, self.playerInstanceDifficultyName, self.playerInstanceMaxPlayers, self.playerInstanceDynamicDifficulty, self.playerInstanceIsDynamic, self.playerInstanceID, self.playerInstanceGroupSize, self.playerInstanceLfgDungeonID = GetInstanceInfo()
+end
+
+function R:UpdateLevel()
+    ---@type number
+    self.playerLevel = UnitLevel('player')
+end
+
 function R:APIOnEnable()
     self:UpdateSpec()
+    self:UpdateInstance()
 end
 
 function R:APIOnInitialize()
+    ---@type string
+    self.playerGUID = UnitGUID('player')
+
+    self:RegisterEvent('PLAYER_LEVEL_UP', 'UpdateLevel')
+    self:RegisterEvent('PLAYER_ENTERING_WORLD', 'UpdateInstance')
+    self:RegisterEvent('ZONE_CHANGED_NEW_AREA', 'UpdateInstance')
     self:RegisterEvent('PLAYER_SPECIALIZATION_CHANGED', 'UpdateSpec')
     self:RegisterEvent('PLAYER_ROLES_ASSIGNED', 'UpdateRole')
     self:RegisterEvent('PET_BATTLE_CLOSE', 'ShowNonPetBattleFrames')

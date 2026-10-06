@@ -1,9 +1,5 @@
 local addonName, Engine = ...
 ---@class RhythmBoxCore
----@field Name string
----@field Title string
----@field playerFullName string
----@field playerGUID string
 ---@field playerFaction string
 ---@field playerLocalizedFaction string
 ---@field playerLocalizedClass string
@@ -19,15 +15,19 @@ R.isDeveloper = false
 R.isDeveloper = true
 --@end-debug@
 
+---@type string
 R.Name = addonName
 R.Title = '|cFF70B8FFRhythm Box|r'
 ---@type string
 R.playerName = UnitName('player')
 R.playerRealm = GetRealmName()
 R.playerFullName = R.playerName .. '-' .. R.playerRealm
----@type string
-R.playerGUID = UnitGUID('player')
+R.playerLevel = UnitLevel('player')
+R.playerExpansionLevel = GetExpansionLevel()
+R.playerExpansionLevelMax = GetMaxLevelForExpansionLevel(R.playerExpansionLevel)
+---@type string, string
 R.playerFaction, R.playerLocalizedFaction = UnitFactionGroup('player')
+---@type string, string, number
 R.playerLocalizedClass, R.playerClass, R.playerClassID = UnitClass('player')
 
 R.HiddenFrame = CreateFrame('Frame', nil, _G.UIParent)
