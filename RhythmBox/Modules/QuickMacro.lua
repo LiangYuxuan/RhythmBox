@@ -5,9 +5,10 @@ local QM = R:NewModule('QuickMacro', 'AceEvent-3.0')
 
 -- Lua functions
 local _G = _G
-local date, format, gsub, ipairs, pairs = date, format, gsub, ipairs, pairs
-local random, select, sort, tostring, wipe = random, select, sort, tostring, wipe
+local date, format, gsub, ipairs = date, format, gsub, ipairs
+local pairs, random, select, sort = pairs, random, select, sort
 local table_insert = table.insert
+local table_wipe = table.wipe
 
 -- WoW API / Variables
 local C_AddOns_LoadAddOn = C_AddOns.LoadAddOn
@@ -237,7 +238,7 @@ local itemListConditions = {
 ---@param inCombat boolean
 ---@return boolean?
 local function ItemListUpdateFunc(button, data, inCombat)
-    wipe(button.itemDisplay)
+    table_wipe(button.itemDisplay)
 
     local itemList = data.itemList and data.itemList[R.playerRole] or data.itemList
     ---@cast itemList QuickMacroItemList
@@ -250,8 +251,8 @@ local function ItemListUpdateFunc(button, data, inCombat)
         if slotList then
             local selected = slotList[1]
             for _, itemID in ipairs(slotList) do
-                local itemCount = C_Item_GetItemCount(itemID)
-                if itemCount > 0 then
+                local count = C_Item_GetItemCount(itemID)
+                if count > 0 then
                     selected = itemID
                     break
                 end
@@ -293,8 +294,9 @@ local function ItemDisplayFunc(button)
         button.displayType = itemIsToy and 'toy' or 'item'
         button.itemID = itemID
 
-        local itemCount = C_Item_GetItemCount(itemID, nil, true)
-        button.count:SetText(tostring(itemCount))
+        local count = C_Item_GetItemCount(itemID, nil, true)
+        ---@diagnostic disable-next-line: type-mismatch
+        button.count:SetText(count)
 
         local rarity = C_Item_GetItemQualityByID(itemID)
         local itemIcon = C_Item_GetItemIconByID(itemID)
@@ -1110,7 +1112,7 @@ QM.MacroButtons.Consumable = {
                 ---@type QuickMacroItemList
                 local itemList = itemLists.itemList
 
-                wipe(itemList.none)
+                table_wipe(itemList.none)
 
                 local itemID = GetInventoryItemID('player', 16)
                 ---@diagnostic disable-next-line: redundant-condition
@@ -1233,7 +1235,7 @@ QM.MacroButtons.Consumable = {
                 ---@type QuickMacroItemList
                 local itemList = itemLists.itemList
 
-                wipe(itemList.none)
+                table_wipe(itemList.none)
 
                 local itemID = GetInventoryItemID('player', 17)
                 ---@diagnostic disable-next-line: redundant-condition
@@ -1771,7 +1773,7 @@ do
 
         local inCombat = event == 'PLAYER_REGEN_DISABLED'
 
-        wipe(pendingButton)
+        table_wipe(pendingButton)
         local positionUpdate = not event
         for buttonName, button in pairs(self.buttons) do
             local data = self.MacroButtons[buttonName]
