@@ -37,6 +37,12 @@ R.HiddenFrame:Hide()
 
 _G.BINDING_HEADER_RHYTHM = R.Title
 
+---@param s string
+---@param ... any
+function R:Print(s, ...)
+    _G.DEFAULT_CHAT_FRAME:AddMessage(R.Title .. ": " .. format(s, ...))
+end
+
 ---@diagnostic disable-next-line: unused-function
 function R:OnProfileUpdated()
     self.db = self.data.profile
