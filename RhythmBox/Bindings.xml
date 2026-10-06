@@ -23,8 +23,8 @@
 	<Binding name="CLICK RhythmBoxABQuest10:LeftButton"           category="BINDING_HEADER_RHYTHM" />
 	<Binding name="CLICK RhythmBoxABQuest11:LeftButton"           category="BINDING_HEADER_RHYTHM" />
 	<Binding name="CLICK RhythmBoxABQuest12:LeftButton"           category="BINDING_HEADER_RHYTHM" />
-	<Binding name="CLICK RhythmBoxQMRandomMount:LeftButton"       category="BINDING_HEADER_RHYTHM" />
-	<Binding name="CLICK RhythmBoxQMRandomHearthstone:LeftButton" category="BINDING_HEADER_RHYTHM" header="RhythmBoxQuickMacro" />
+	<Binding name="CLICK RhythmBoxQMRandomMount:LeftButton"       category="BINDING_HEADER_RHYTHM" header="RhythmBoxQuickMacro" />
+	<Binding name="CLICK RhythmBoxQMRandomHearthstone:LeftButton" category="BINDING_HEADER_RHYTHM" />
 	<Binding name="CLICK RhythmBoxQMRestoreHealth:LeftButton"     category="BINDING_HEADER_RHYTHM" />
 	<Binding name="CLICK RhythmBoxQMCombatPotion:LeftButton"      category="BINDING_HEADER_RHYTHM" />
 	<Binding name="CLICK RhythmBoxQMConsumable:LeftButton"        category="BINDING_HEADER_RHYTHM" />
