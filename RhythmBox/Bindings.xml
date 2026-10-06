@@ -1,0 +1,33 @@
+<Bindings>
+	<Binding name="CLICK RhythmBoxABSlot1:LeftButton"             category="BINDING_HEADER_RHYTHM" header="RhythmBoxAutoSlotButton" />
+	<Binding name="CLICK RhythmBoxABSlot2:LeftButton"             category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABSlot3:LeftButton"             category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABSlot4:LeftButton"             category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABSlot5:LeftButton"             category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABSlot6:LeftButton"             category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABSlot7:LeftButton"             category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABSlot8:LeftButton"             category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABSlot9:LeftButton"             category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABSlot10:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABSlot11:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABSlot12:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest1:LeftButton"            category="BINDING_HEADER_RHYTHM" header="RhythmBoxAutoQuestButton" />
+	<Binding name="CLICK RhythmBoxABQuest2:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest3:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest4:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest5:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest6:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest7:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest8:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest9:LeftButton"            category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest10:LeftButton"           category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest11:LeftButton"           category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxABQuest12:LeftButton"           category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxQMRandomMount:LeftButton"       category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxQMRandomHearthstone:LeftButton" category="BINDING_HEADER_RHYTHM" header="RhythmBoxQuickMacro" />
+	<Binding name="CLICK RhythmBoxQMRestoreHealth:LeftButton"     category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxQMCombatPotion:LeftButton"      category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxQMConsumable:LeftButton"        category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxQMUtilityToy:LeftButton"        category="BINDING_HEADER_RHYTHM" />
+	<Binding name="CLICK RhythmBoxQMCorpseToy:LeftButton"         category="BINDING_HEADER_RHYTHM" />
+</Bindings>
