@@ -58,7 +58,7 @@ end
 
 function R:UpdateInstance()
     ---@type string, string, number, string, number, number, boolean?, number, number, number?
-    self.playerInstanceName, self.playerInstanceType, self.playerInstanceDifficultyID, self.playerInstanceDifficultyName, self.playerInstanceMaxPlayers, self.playerInstanceDynamicDifficulty, self.playerInstanceIsDynamic, self.playerInstanceID, self.playerInstanceGroupSize, self.playerInstanceLfgDungeonID = GetInstanceInfo()
+    self.playerInstanceName, self.playerInstanceType, self.playerInstanceDifficultyID, self.playerInstanceDifficultyName, self.playerInstanceMaxPlayers, self.playerInstanceDynamicDifficulty, self.playerInstanceIsDynamic, self.playerInstanceID, self.playerInstanceGroupSize, self.playerInstanceLFGDungeonID = GetInstanceInfo()
 end
 
 function R:UpdateLevel()
