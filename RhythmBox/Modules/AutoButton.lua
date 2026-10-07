@@ -447,7 +447,8 @@ function AB:UpdateSlotBar(event, unitID)
             if spellID then
                 local rarity = GetInventoryItemQuality('player', slotID)
                 local itemIcon = GetInventoryItemTexture('player', slotID)
-                local r, g, b = C_Item_GetItemQualityColor(rarity > 1 and rarity or 1)
+                ---@diagnostic disable-next-line: redundant-and
+                local r, g, b = C_Item_GetItemQualityColor((rarity and rarity > 1 and rarity) or 1)
 
                 local button = self.slotButtons[index]
                 button.itemID = itemID
