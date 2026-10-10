@@ -7,6 +7,7 @@
 	<Script file='Core.lua'/>
 
 	<Script file='API.lua'/>
+	<Script file='Color.lua'/>
 	<Script file='Function.lua'/>
 	<Script file='GUI.lua'/>
 
