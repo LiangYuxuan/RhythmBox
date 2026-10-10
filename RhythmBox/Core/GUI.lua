@@ -112,8 +112,7 @@ end
 ---@param texture Texture
 ---@param parent Frame
 function R:SetupIcon(texture, parent)
-    texture:SetPoint('TOPLEFT', parent, 'TOPLEFT', 1, -1)
-    texture:SetPoint('BOTTOMRIGHT', parent, 'BOTTOMRIGHT', -1, 1)
+    SetInside(texture, parent)
     texture:SetTexCoord(0.1, 0.9, 0.1, 0.9)
 end
 
@@ -137,8 +136,7 @@ end
 ---@param parent Frame
 ---@param cooldownType "Default" | "Charge" | "LossOfControl" | nil
 function R:SetupCooldown(cooldown, parent, cooldownType)
-    cooldown:SetPoint('TOPLEFT', parent, 'TOPLEFT', 1, -1)
-    cooldown:SetPoint('BOTTOMRIGHT', parent, 'BOTTOMRIGHT', -1, 1)
+    SetInside(cooldown, parent)
 
     ---@diagnostic disable-next-line: missing-parameter
     cooldown:SetBlingTexture(invisibleTexture)
