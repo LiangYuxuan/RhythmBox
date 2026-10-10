@@ -5,9 +5,9 @@ local QM = R:NewModule('QuickMacro', 'AceEvent-3.0')
 
 -- Lua functions
 local _G = _G
-local date, format, gsub, ipairs = date, format, gsub, ipairs
-local pairs, random, select, sort = pairs, random, select, sort
+local date, format, gsub, ipairs, pairs, random, select = date, format, gsub, ipairs, pairs, random, select
 local table_insert = table.insert
+local table_sort = table.sort
 local table_wipe = table.wipe
 
 -- WoW API / Variables
@@ -1803,7 +1803,7 @@ do
         end
 
         if positionUpdate then
-            sort(pendingButton, buttonSort)
+            table_sort(pendingButton, buttonSort)
             for index, buttonName in ipairs(pendingButton) do
                 local button = self.buttons[buttonName]
                 button:ClearAllPoints()
