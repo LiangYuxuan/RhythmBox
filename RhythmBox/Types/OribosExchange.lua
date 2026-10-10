@@ -14,5 +14,5 @@
 ---@param item number | string
 ---@param tbl table?
 ---@return OribosExchangeMarketInfo
-function OEMarketInfo(link, tbl)
+function OEMarketInfo(item, tbl)
 end
