@@ -23,13 +23,13 @@ function R:RegisterNonPetBattleFrame(frame, parent)
     nonPetBattleFrames[frame] = parent
 
     if C_PetBattles_IsInBattle() then
-        frame:SetParent(R.HiddenFrame)
+        frame:SetParent(self.HiddenFrame)
     end
 end
 
 function R:HideNonPetBattleFrames()
     for frame in pairs(nonPetBattleFrames) do
-        frame:SetParent(R.HiddenFrame)
+        frame:SetParent(self.HiddenFrame)
     end
 end
 
@@ -74,6 +74,8 @@ end
 function R:APIOnInitialize()
     ---@type string
     self.playerGUID = UnitGUID('player')
+    ---@type RhythmBoxColor
+    self.playerClassColor = self:ClassColor(self.playerClass)
 
     self:RegisterEvent('PLAYER_LEVEL_UP', 'UpdateLevel')
     self:RegisterEvent('PLAYER_ENTERING_WORLD', 'UpdateInstance')

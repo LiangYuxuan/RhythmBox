@@ -11,5 +11,5 @@ local string_format = string.format
 ---@param s string
 ---@param ... any
 function R:Print(s, ...)
-    _G.DEFAULT_CHAT_FRAME:AddMessage(R.Title .. ": " .. string_format(s, ...))
+    _G.DEFAULT_CHAT_FRAME:AddMessage(self.Title .. ": " .. string_format(s, ...))
 end
