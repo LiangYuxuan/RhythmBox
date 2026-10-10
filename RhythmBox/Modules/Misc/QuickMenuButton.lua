@@ -125,11 +125,11 @@ local function GetServerURLInfo(realmName)
         realmName = string_gsub(realmName, '）', ')')
     end
 
-    local _, _, nameForAPI, _, locale, _, region, _, _, _, englishNameForAPI = LRI:GetRealmInfo(realmName)
+    local _, name, _, _, locale, _, region, _, _, englishName = LRI:GetRealmInfo(realmName)
 
     local regionURL = string_lower(region)
     local localeURL = string_lower(string_sub(locale, 1, 2) .. '-' .. string_sub(locale, 3, 4))
-    local realmNameURL = string_lower(englishNameForAPI or nameForAPI)
+    local realmNameURL = string_lower(string_gsub(string_gsub(englishName or name, '\'', ''), ' ', '-'))
 
     return regionURL, localeURL, realmNameURL
 end
