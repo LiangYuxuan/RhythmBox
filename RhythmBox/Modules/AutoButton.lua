@@ -551,7 +551,7 @@ function AB:CreateButton(buttonType, buttonIndex, parent)
     button:EnableMouse(true)
     button:RegisterForClicks('AnyUp', 'AnyDown')
     R:SetupBackdrop(button)
-    R:SetupButton(button)
+    R:SetupButtonHighlight(button)
     R:RegisterNonPetBattleFrame(button, parent)
 
     button.icon = button:CreateTexture(nil, 'OVERLAY')

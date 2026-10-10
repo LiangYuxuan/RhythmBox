@@ -928,7 +928,7 @@ QM.MacroButtons.Consumable = {
             overlay:SetScript('OnLeave', button:GetScript('OnLeave'))
 
             overlay:RegisterForClicks('AnyUp', 'AnyDown')
-            R:SetupButton(overlay)
+            R:SetupButtonHighlight(overlay)
 
             SecureHandlerSetFrameRef(overlay, 'subFrame', subFrame)
             overlay:SetAttribute('expanded', false)
@@ -1878,7 +1878,7 @@ function QM:CreateButton(buttonName, parent)
     button:EnableMouse(true)
     button:RegisterForClicks('AnyUp', 'AnyDown')
     R:SetupBackdrop(button)
-    R:SetupButton(button)
+    R:SetupButtonHighlight(button)
     R:RegisterNonPetBattleFrame(button, parent or self.container)
 
     button.icon = button:CreateTexture(nil, 'OVERLAY')

@@ -70,6 +70,14 @@ local breakpoints = {
 local formatter = C_StringUtil.CreateNumericRuleFormatter()
 formatter:SetBreakpoints(breakpoints)
 
+---@param region Region
+---@param parent Region
+local function SetInside(region, parent)
+    region:ClearAllPoints()
+    region:SetPoint('TOPLEFT', parent, 'TOPLEFT', 1, -1)
+    region:SetPoint('BOTTOMRIGHT', parent, 'BOTTOMRIGHT', -1, 1)
+end
+
 ---@param frame Frame & BackdropTemplate
 ---@param template "Default" | "Transparent" | nil
 function R:SetupBackdrop(frame, template)
@@ -85,20 +93,18 @@ function R:SetupBackdrop(frame, template)
 end
 
 ---@param button Button
-function R:SetupButton(button)
+function R:SetupButtonHighlight(button)
     button:SetHighlightTexture(whiteTexture)
+    button:SetPushedTexture(whiteTexture)
 
     local hover = button:GetHighlightTexture()
-    hover:SetPoint('TOPLEFT', button, 'TOPLEFT', 1, -1)
-    hover:SetPoint('BOTTOMRIGHT', button, 'BOTTOMRIGHT', -1, 1)
+    local pushed = button:GetPushedTexture()
+
+    SetInside(hover, button)
     hover:SetBlendMode('ADD')
     hover:SetVertexColor(1, 1, 1, 0.3)
 
-    button:SetPushedTexture(whiteTexture)
-
-    local pushed = button:GetPushedTexture()
-    pushed:SetPoint('TOPLEFT', button, 'TOPLEFT', 1, -1)
-    pushed:SetPoint('BOTTOMRIGHT', button, 'BOTTOMRIGHT', -1, 1)
+    SetInside(pushed, button)
     pushed:SetBlendMode('ADD')
     pushed:SetVertexColor(0.9, 0.8, 0.1, 0.3)
 end
