@@ -2,6 +2,11 @@ local _, Engine = ...
 ---@class RhythmBoxCore
 local R = Engine.Core
 
+-- Lua functions
+
+-- WoW API / Variables
+local C_ClassColor_GetClassColor = C_ClassColor.GetClassColor
+
 ---@class RhythmBoxColor
 ---@field r number
 ---@field g number
@@ -57,7 +62,7 @@ R.Colors = {
 ---@param class string
 ---@return RhythmBoxColor
 function R:ClassColor(class)
-    local classColor = C_ClassColor.GetClassColor(class)
+    local classColor = C_ClassColor_GetClassColor(class)
 
     ---@type RhythmBoxColor
     local color = {
