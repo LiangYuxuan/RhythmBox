@@ -541,7 +541,7 @@ end
 ---@return AutoButton
 function AB:CreateButton(buttonType, buttonIndex, parent)
     ---@type AutoButton
-    local button = CreateFrame('Button', 'RhythmBoxAB' .. buttonType .. buttonIndex, parent, 'SecureActionButtonTemplate, BackdropTemplate')
+    local button = CreateFrame('Button', 'RhythmBoxAB' .. buttonType .. buttonIndex, parent, 'SecureActionButtonTemplate')
 
     button:SetScript('OnEnter', ButtonOnEnter)
     button:SetScript('OnLeave', ButtonOnLeave)
@@ -550,6 +550,7 @@ function AB:CreateButton(buttonType, buttonIndex, parent)
     button:SetSize(R.db.AutoButton.ButtonSize, R.db.AutoButton.ButtonSize)
     button:EnableMouse(true)
     button:RegisterForClicks('AnyUp', 'AnyDown')
+    R:MixinBackdrop(button)
     R:SetupBackdrop(button)
     R:SetupButtonHighlight(button)
     R:RegisterNonPetBattleFrame(button, parent)

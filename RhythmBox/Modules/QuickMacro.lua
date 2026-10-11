@@ -1866,7 +1866,7 @@ end
 ---@return QuickMacroButton
 function QM:CreateButton(buttonName, parent)
     ---@type QuickMacroButton
-    local button = CreateFrame('Button', 'RhythmBoxQM' .. buttonName, parent or self.container, 'SecureActionButtonTemplate, BackdropTemplate')
+    local button = CreateFrame('Button', 'RhythmBoxQM' .. buttonName, parent or self.container, 'SecureActionButtonTemplate')
 
     button.itemDisplay = {} --[[@as QuickMacroItemDisplay]]
 
@@ -1877,6 +1877,7 @@ function QM:CreateButton(buttonName, parent)
     button:SetSize(R.db.QuickMacro.ButtonSize, R.db.QuickMacro.ButtonSize)
     button:EnableMouse(true)
     button:RegisterForClicks('AnyUp', 'AnyDown')
+    R:MixinBackdrop(button)
     R:SetupBackdrop(button)
     R:SetupButtonHighlight(button)
     R:RegisterNonPetBattleFrame(button, parent or self.container)
