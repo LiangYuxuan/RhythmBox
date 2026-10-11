@@ -23,7 +23,7 @@ jobs:
       - name: Find globals
         uses: LiangYuxuan/action-findglobals@master
         with:
-          find-args: "! -path \"./RhythmBox/Libs/*\""
+          find-args: "! -path \"./RhythmBox/Libs/*\" ! -path \"./RhythmBox/Types/*\""
 
       - name: Create Retail Package
         uses: BigWigsMods/packager@v2
