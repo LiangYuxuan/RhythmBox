@@ -812,7 +812,6 @@ do
         _G.GameTooltip:SetOwner(self, 'ANCHOR_RIGHT')
         _G.GameTooltip:ClearLines()
 
-        ---@diagnostic disable-next-line: redundant-parameter
         _G.GameTooltip:SetRecipeResultItem(data.order.spellID, craftingReagents, nil, nil, data.operationInfo and data.operationInfo.craftingQualityID or nil)
 
         _G.GameTooltip:Show()

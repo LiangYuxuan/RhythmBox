@@ -40,7 +40,6 @@ local instances = {
 ---@type table<number, boolean>
 local seasonInstances = {}
 
----@diagnostic disable-next-line: unused-function
 function AL:DelayedStopLogging()
     LoggingCombat(false)
     R:Print("停止记录战斗日志")

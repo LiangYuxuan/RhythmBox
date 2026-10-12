@@ -37,7 +37,6 @@ R.HiddenFrame:Hide()
 
 _G.BINDING_HEADER_RHYTHM = R.Title
 
----@diagnostic disable-next-line: unused-function
 function R:OnProfileUpdated()
     self.db = self.data.profile
 

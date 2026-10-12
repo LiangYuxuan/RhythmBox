@@ -305,7 +305,6 @@ end
 function R:SetupCooldown(cooldown, parent, cooldownType)
     SetInside(cooldown, parent)
 
-    ---@diagnostic disable-next-line: missing-parameter
     cooldown:SetBlingTexture(invisibleTexture)
 
     cooldown:SetHideCountdownNumbers(false)
@@ -339,7 +338,6 @@ function R:SetupCooldown(cooldown, parent, cooldownType)
         cooldown:SetSwipeTexture(whiteTexture, 0, 0, 0, 0.7)
     end
 
-    ---@diagnostic disable-next-line: type-mismatch
     cooldown:SetCountdownFormatter(formatter)
 
     cooldown:SetDrawBling(true)

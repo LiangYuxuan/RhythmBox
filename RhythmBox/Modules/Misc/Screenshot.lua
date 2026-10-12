@@ -10,7 +10,6 @@ local table_remove = table.remove
 -- WoW API / Variables
 local Screenshot = Screenshot
 
----@diagnostic disable-next-line: unused-function
 function SS:HandleScreenshot()
     Screenshot()
 
