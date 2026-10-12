@@ -20,6 +20,7 @@ local C_LFGList_GetSearchResultInfo = C_LFGList.GetSearchResultInfo
 local C_Timer_After = C_Timer.After
 local GetGuildInfo = GetGuildInfo
 local IsControlKeyDown = IsControlKeyDown
+local UnitIsPlayer = UnitIsPlayer
 local UnitNameUnmodified = UnitNameUnmodified
 
 local Menu_ModifyMenu = Menu.ModifyMenu
@@ -190,6 +191,8 @@ local function OnUnitMenuShow(_, rootDescription, contextData)
             HandleMenu(rootDescription, name, realm or R.playerRealm)
         end
     elseif contextData.unit then
+        if not UnitIsPlayer(contextData.unit) then return end
+
         ---@type secret<string>?, secret<string>?
         local name, realm = UnitNameUnmodified(contextData.unit)
 
