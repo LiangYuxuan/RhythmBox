@@ -5,6 +5,22 @@ local koKR, ruRU, zhCN, zhTW, western = LSM.LOCALE_BIT_koKR, LSM.LOCALE_BIT_ruRU
 ---@type 'font'
 local MediaType_FONT = LSM.MediaType.FONT
 
+---@param mediaType string
+---@param key string
+---@param data string
+---@param langMask number
+local function ForceRegister(mediaType, key, data, langMask)
+    ---@type boolean
+    local result = LSM:Register(mediaType, key, data, langMask)
+    if not result then
+        local dataTable = LSM:HashTable(mediaType)
+        dataTable[key] = data
+
+        ---@diagnostic disable-next-line: undefined-field
+        LSM.callbacks:Fire("LibSharedMedia_Registered", mediaType, key)
+    end
+end
+
 -- -----
 --   BACKGROUND
 -- -----
@@ -16,24 +32,8 @@ local MediaType_FONT = LSM.MediaType.FONT
 -- -----
 --   FONT
 -- -----
-do
-    -- GothamNarrowUltra + Rhythm and hijack GothamNarrowUltra font in NaowhUI
-    ---@type boolean
-    local res = LSM:Register(MediaType_FONT, "GothamNarrowUltra", [[Interface\Addons\RhythmBox\Media\Font\GothamNarrowUltra_Round.ttf]], koKR + ruRU + zhCN + zhTW + western)
-    if not res then
-        local data = LSM:HashTable(MediaType_FONT)
-        data["GothamNarrowUltra"] = [[Interface\Addons\RhythmBox\Media\Font\GothamNarrowUltra_Round.ttf]]
-    end
-end
-do
-    -- hijack Naowh font in NaowhUI
-    ---@type boolean
-    local res = LSM:Register(MediaType_FONT, "Naowh", [[Interface\Addons\RhythmBox\Media\Font\Rhythm.ttf]], koKR + ruRU + zhCN + zhTW + western)
-    if not res then
-        local data = LSM:HashTable(MediaType_FONT)
-        data["Naowh"] = [[Interface\Addons\RhythmBox\Media\Font\Rhythm.ttf]]
-    end
-end
+ForceRegister(MediaType_FONT, "GothamNarrowUltra", [[Interface\Addons\RhythmBox\Media\Font\GothamNarrowUltra_Round.ttf]], koKR + ruRU + zhCN + zhTW + western)
+ForceRegister(MediaType_FONT, "Naowh", [[Interface\Addons\RhythmBox\Media\Font\Rhythm.ttf]], koKR + ruRU + zhCN + zhTW + western)
 
 -- -----
 --   SOUND
