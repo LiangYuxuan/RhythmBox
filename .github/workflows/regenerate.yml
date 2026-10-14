@@ -1,0 +1,43 @@
+name: regenerate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: 0 1 * * *
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.21.0
+
+      - run: echo "pnpm_version=$(node -p 'require(`./Builder/package.json`).packageManager.replace(/^pnpm@/, ``)')" >> $GITHUB_OUTPUT
+        id: pnpm-version
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ steps.pnpm-version.outputs.pnpm_version }}
+
+      - run: pnpm install
+        working-directory: Builder
+
+      - run: pnpm start
+        working-directory: Builder
+        env:
+          NODE_OPTIONS: '--max_old_space_size=8192'
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          add-paths: |
+            RhythmBox/*
+            Builder/buildInfo.json
+          title: Regenerate
+          commit-message: "chore: regenerate"
+          branch: regenerate
+          delete-branch: true

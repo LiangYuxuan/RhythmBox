@@ -1,0 +1,85 @@
+import assert from 'node:assert';
+
+import { versions, latestVersion } from '../../client.ts';
+
+import type { Task } from '../../task.ts';
+
+interface MapData {
+    mapID: number,
+    mapName: string,
+}
+
+const ignoredInstances = new Set<number>([
+    1319, // Keystone Dungeons (Dummy Instance for introducing keystones)
+]);
+
+const overrideMapExpansion = new Map<number, number>([
+    [2810, 10], // Manaforge Omega
+]);
+
+const task: Task = {
+    key: 'AutoLogging',
+    version: 4,
+    fileDataIDs: [
+        1237438, // dbfilesclient/journalinstance.db2
+        1349477, // dbfilesclient/map.db2
+    ],
+    localeFileDataIDs: [],
+    handler: ([
+        journalInstance,
+        map,
+    ]) => {
+        const liveMajor = versions[0].semver?.major;
+        const liveMinor = versions[0].semver?.minor;
+        const latestMajor = latestVersion.semver.major;
+        assert(typeof liveMajor === 'number', 'Missing major version for live');
+        assert(typeof liveMinor === 'number', 'Missing minor version for live');
+
+        const minMajor = (liveMajor < latestMajor || liveMinor < 1)
+            ? latestMajor - 1
+            : latestMajor;
+
+        const normalMapIDs = new Set<number>();
+        journalInstance
+            .getAllIDs()
+            .filter((id) => !ignoredInstances.has(id))
+            .forEach((id) => {
+                const row = journalInstance.getRowData(id);
+                const mapID = row?.MapID as number;
+                const flags = row?.Flags as number;
+
+                // eslint-disable-next-line no-bitwise
+                if (mapID > 0 && (flags & 0x2) === 0) {
+                    normalMapIDs.add(mapID);
+                }
+            });
+
+        const dungeons: MapData[] = [];
+        const raids: MapData[] = [];
+        normalMapIDs.forEach((mapID) => {
+            const row = map.getRowData(mapID);
+            const expansionID = overrideMapExpansion.get(mapID) ?? (row?.ExpansionID as number);
+            const instanceType = row?.InstanceType as number;
+            const mapName = row?.MapName_lang;
+            assert(typeof mapName === 'string', `No map name for map ${mapID.toString()}`);
+
+            if (expansionID === (minMajor - 1) || expansionID === (latestMajor - 1)) {
+                if (instanceType === 1) {
+                    dungeons.push({ mapID, mapName });
+                } else if (instanceType === 2) {
+                    raids.push({ mapID, mapName });
+                }
+            }
+        });
+
+        dungeons.sort((a, b) => a.mapID - b.mapID);
+        raids.sort((a, b) => a.mapID - b.mapID);
+
+        const dungeonsText = dungeons.map(({ mapID, mapName }) => `[${mapID.toString()}] = true, -- ${mapName}`).join('\n');
+        const raidsText = raids.map(({ mapID, mapName }) => `[${mapID.toString()}] = true, -- ${mapName}`).join('\n');
+
+        return `-- Dungeons\n${dungeonsText}\n-- Raids\n${raidsText}`;
+    },
+};
+
+export default task;

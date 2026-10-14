@@ -1,0 +1,25 @@
+{
+  "name": "rhythmbox-builder",
+  "type": "module",
+  "private": true,
+  "author": "Rhythm",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "start:force": "tsx src/index.ts --force",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "@rhyster/eslint-config": "^2.0.35",
+    "@types/async": "^3.2.26",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.12.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@rhyster/wow-casc-dbc": "^2.16.15",
+    "async": "^3.2.6",
+    "tsx": "^4.23.15"
+  },
+  "packageManager": "pnpm@12.11.2"
+}
