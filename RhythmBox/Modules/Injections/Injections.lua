@@ -74,12 +74,9 @@ function RI:UpdateEnableStatus(optionName)
             self:UpdateModuleEnableStatus(module)
         end
     else
-        for moduleName, status in pairs(R.db.Injections) do
-            ---@type AceAddon-3.0?
-            local module = self:GetModule(moduleName, true)
-            if module then
-                self:UpdateModuleEnableStatus(module)
-            end
+        for _, callback in ipairs(optionsCallbacks) do
+            local module = callback.module
+            self:UpdateModuleEnableStatus(module)
         end
     end
 end
