@@ -4,6 +4,10 @@ local R = Engine.Core
 local QMB = R:NewModule('QuickMenuButton', 'AceEvent-3.0')
 local LRI = Engine.Libs.LRI
 
+---@type RhythmBoxMiscModule
+local M = R:GetModule('Misc')
+M:Register(QMB, "快速右键菜单")
+
 -- Lua functions
 local _G = _G
 local ipairs, issecretvalue = ipairs, issecretvalue
@@ -183,6 +187,8 @@ end
 ---@param rootDescription RootMenuDescriptionProxy
 ---@param contextData UnitMenuContextData
 local function OnUnitMenuShow(_, rootDescription, contextData)
+    if not QMB:IsEnabled() then return end
+
     if contextData.accountInfo then
         local name = contextData.accountInfo.gameAccountInfo.characterName
         local realm = contextData.accountInfo.gameAccountInfo.realmName
@@ -212,6 +218,8 @@ end
 ---@param owner LFGListSearchEntryTemplate & { resultID: number }
 ---@param rootDescription RootMenuDescriptionProxy
 local function OnSearchEntryMenuShow(owner, rootDescription)
+    if not QMB:IsEnabled() then return end
+
     local searchResultData = C_LFGList_GetSearchResultInfo(owner.resultID)
     ---@diagnostic disable-next-line: redundant-condition
     if not searchResultData then return end
@@ -227,6 +235,8 @@ end
 ---@param owner LFGListApplicantMemberTemplate & { memberIdx: number? }
 ---@param rootDescription RootMenuDescriptionProxy
 local function OnMemberApplyMenuShow(owner, rootDescription)
+    if not QMB:IsEnabled() then return end
+
     ---@type LFGListApplicantTemplate & { applicantID: number? }
     local parent = owner:GetParent()
     local applicantID = parent.applicantID

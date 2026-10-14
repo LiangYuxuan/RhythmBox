@@ -4,6 +4,8 @@
     xsi:schemaLocation="http://www.blizzard.com/wow/ui/
                         https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_SharedXML/UI.xsd"
 >
+	<Script file='Misc.lua'/>
+
 	<Script file='AutoLogging.lua'/>
 	<Script file='QuickMenuButton.lua'/>
 	<Script file='Screenshot.lua'/>

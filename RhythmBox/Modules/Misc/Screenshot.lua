@@ -3,6 +3,10 @@ local R = Engine.Core
 ---@class RhythmBoxScreenshot: AceAddon-3.0 & AceEvent-3.0 & AceTimer-3.0
 local SS = R:NewModule('Screenshot', 'AceEvent-3.0', 'AceTimer-3.0')
 
+---@type RhythmBoxMiscModule
+local M = R:GetModule('Misc')
+M:Register(SS, "自动截图")
+
 -- Lua functions
 local table_insert = table.insert
 local table_remove = table.remove

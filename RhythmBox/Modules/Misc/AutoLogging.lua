@@ -3,6 +3,10 @@ local R = Engine.Core
 ---@class RhythmBoxAutoLogging: AceAddon-3.0 & AceEvent-3.0 & AceTimer-3.0
 local AL = R:NewModule('AutoLogging', 'AceEvent-3.0', 'AceTimer-3.0')
 
+---@type RhythmBoxMiscModule
+local M = R:GetModule('Misc')
+M:Register(AL, "自动记录战斗日志")
+
 -- Lua functions
 local ipairs = ipairs
 local table_wipe = table.wipe
