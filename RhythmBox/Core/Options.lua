@@ -73,8 +73,17 @@ function R:OptionsOnProfileUpdated()
     for _, callbackInfo in ipairs(optionsCallbacks) do
         local module = callbackInfo.module
         local moduleName = module:GetName()
-        if self.db[moduleName].Enable ~= nil and (self.db[moduleName].Enable ~= module:IsEnabled()) then
-            module:SetEnabledState(self.db[moduleName].Enable)
+        if self.db[moduleName].Enable ~= nil then
+            ---@type boolean
+            local shouldEnabled = self.db[moduleName].Enable
+            local isEnabled = module:IsEnabled()
+            if shouldEnabled ~= isEnabled then
+                if shouldEnabled then
+                    module:Enable()
+                else
+                    module:Disable()
+                end
+            end
         end
 
         callbackInfo.onOptionsChanged()
