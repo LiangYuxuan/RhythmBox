@@ -22,6 +22,14 @@
             [
                 "QuickMacroTempEnchantment",
                 1
+            ],
+            [
+                "AutoButtonSmart",
+                1
+            ],
+            [
+                "DatabaseMythicPlus",
+                6
             ]
         ]
     },
@@ -884,6 +892,254 @@
                     "cKey": "8c1fd2f0b3534badba0cdb4c6b869d7a",
                     "type": "full",
                     "blocks": []
+                }
+            ],
+            [
+                1140079,
+                {
+                    "cKey": "285d911948f95e5a638eb82a740fefcb",
+                    "type": "partial",
+                    "blocks": [
+                        {
+                            "offset": 554238,
+                            "size": 28,
+                            "blockIndex": 4,
+                            "keyName": "583c5b29bf208655"
+                        },
+                        {
+                            "offset": 554422,
+                            "size": 28,
+                            "blockIndex": 10,
+                            "keyName": "bf5a860131bb05f2"
+                        },
+                        {
+                            "offset": 554626,
+                            "size": 76,
+                            "blockIndex": 15,
+                            "keyName": "fbbf041f980ce0dc"
+                        }
+                    ]
+                }
+            ],
+            [
+                1729547,
+                {
+                    "cKey": "30ff624f2f6c669b0c46259152ae0623",
+                    "type": "full",
+                    "blocks": []
+                }
+            ],
+            [
+                1394440,
+                {
+                    "cKey": "e59b4940a5d6e8da47142f3785de26c4",
+                    "type": "full",
+                    "blocks": []
+                }
+            ],
+            [
+                801709,
+                {
+                    "cKey": "0bd84ed45606d50050e5db6890999be0",
+                    "type": "full",
+                    "blocks": []
+                }
+            ],
+            [
+                1361033,
+                {
+                    "cKey": "94bd8fac7f3168a1832e17d7cac9d47b",
+                    "type": "full",
+                    "blocks": []
+                }
+            ],
+            [
+                1140089,
+                {
+                    "cKey": "3d6bed776830a7d04054de3d41a4bdb4",
+                    "type": "partial",
+                    "blocks": [
+                        {
+                            "offset": 19793968,
+                            "size": 52,
+                            "blockIndex": 970,
+                            "keyName": "05fa08a8f5f1fea9"
+                        },
+                        {
+                            "offset": 19794020,
+                            "size": 14,
+                            "blockIndex": 971,
+                            "keyName": "05fa08a8f5f1fea9"
+                        },
+                        {
+                            "offset": 19794034,
+                            "size": 38,
+                            "blockIndex": 972,
+                            "keyName": "14f4b11d7b067aa2"
+                        },
+                        {
+                            "offset": 19794072,
+                            "size": 22,
+                            "blockIndex": 973,
+                            "keyName": "14f4b11d7b067aa2"
+                        },
+                        {
+                            "offset": 19794458,
+                            "size": 82,
+                            "blockIndex": 978,
+                            "keyName": "46bca0b39e7864ff"
+                        },
+                        {
+                            "offset": 19794540,
+                            "size": 188,
+                            "blockIndex": 979,
+                            "keyName": "46bca0b39e7864ff"
+                        },
+                        {
+                            "offset": 19794878,
+                            "size": 438,
+                            "blockIndex": 984,
+                            "keyName": "583c5b29bf208655"
+                        },
+                        {
+                            "offset": 19795316,
+                            "size": 226,
+                            "blockIndex": 985,
+                            "keyName": "583c5b29bf208655"
+                        },
+                        {
+                            "offset": 19796646,
+                            "size": 54,
+                            "blockIndex": 1006,
+                            "keyName": "979cf71a22917498"
+                        },
+                        {
+                            "offset": 19796700,
+                            "size": 14,
+                            "blockIndex": 1007,
+                            "keyName": "979cf71a22917498"
+                        },
+                        {
+                            "offset": 19797066,
+                            "size": 42,
+                            "blockIndex": 1018,
+                            "keyName": "a907fa61ebdeeade"
+                        },
+                        {
+                            "offset": 19797108,
+                            "size": 14,
+                            "blockIndex": 1019,
+                            "keyName": "a907fa61ebdeeade"
+                        },
+                        {
+                            "offset": 19798958,
+                            "size": 142,
+                            "blockIndex": 1026,
+                            "keyName": "b7457365877699fc"
+                        },
+                        {
+                            "offset": 19799100,
+                            "size": 42,
+                            "blockIndex": 1027,
+                            "keyName": "b7457365877699fc"
+                        },
+                        {
+                            "offset": 19799142,
+                            "size": 42,
+                            "blockIndex": 1028,
+                            "keyName": "bbae9630be1c18e3"
+                        },
+                        {
+                            "offset": 19799184,
+                            "size": 70,
+                            "blockIndex": 1029,
+                            "keyName": "bbae9630be1c18e3"
+                        },
+                        {
+                            "offset": 19799254,
+                            "size": 50,
+                            "blockIndex": 1030,
+                            "keyName": "bbd411bea4522afe"
+                        },
+                        {
+                            "offset": 19799304,
+                            "size": 38,
+                            "blockIndex": 1031,
+                            "keyName": "bbd411bea4522afe"
+                        },
+                        {
+                            "offset": 19799342,
+                            "size": 58,
+                            "blockIndex": 1032,
+                            "keyName": "bf5a860131bb05f2"
+                        },
+                        {
+                            "offset": 19799400,
+                            "size": 14,
+                            "blockIndex": 1033,
+                            "keyName": "bf5a860131bb05f2"
+                        },
+                        {
+                            "offset": 19799566,
+                            "size": 42,
+                            "blockIndex": 1038,
+                            "keyName": "cf9022a9913b1b4d"
+                        },
+                        {
+                            "offset": 19799608,
+                            "size": 102,
+                            "blockIndex": 1039,
+                            "keyName": "cf9022a9913b1b4d"
+                        },
+                        {
+                            "offset": 19800062,
+                            "size": 206,
+                            "blockIndex": 1046,
+                            "keyName": "e2c8a2697707f59c"
+                        },
+                        {
+                            "offset": 19800268,
+                            "size": 78,
+                            "blockIndex": 1047,
+                            "keyName": "e2c8a2697707f59c"
+                        },
+                        {
+                            "offset": 19800346,
+                            "size": 42,
+                            "blockIndex": 1048,
+                            "keyName": "eb00b02ac6add077"
+                        },
+                        {
+                            "offset": 19800388,
+                            "size": 22,
+                            "blockIndex": 1049,
+                            "keyName": "eb00b02ac6add077"
+                        },
+                        {
+                            "offset": 19800502,
+                            "size": 210,
+                            "blockIndex": 1054,
+                            "keyName": "fbbf041f980ce0dc"
+                        },
+                        {
+                            "offset": 19800712,
+                            "size": 76,
+                            "blockIndex": 1055,
+                            "keyName": "fbbf041f980ce0dc"
+                        },
+                        {
+                            "offset": 19800788,
+                            "size": 48,
+                            "blockIndex": 1056,
+                            "keyName": "fc852d42866ce038"
+                        },
+                        {
+                            "offset": 19800836,
+                            "size": 14,
+                            "blockIndex": 1057,
+                            "keyName": "fc852d42866ce038"
+                        }
+                    ]
                 }
             ]
         ]
