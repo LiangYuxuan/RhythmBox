@@ -1,3 +1,5 @@
+import Smart from './modules/AutoButton/Smart.ts';
+import MythicPlus from './modules/Database/MythicPlus.ts';
 import AutoLogging from './modules/Misc/AutoLogging.ts';
 import Consumables from './modules/QuickMacro/Consumables.ts';
 import CorpseToy from './modules/QuickMacro/CorpseToy.ts';
@@ -8,6 +10,8 @@ import { executeTasks } from './task.ts';
 import type { Task } from './task.ts';
 
 const tasks: Task[] = [
+    Smart,
+    MythicPlus,
     AutoLogging,
     Consumables,
     CorpseToy,
