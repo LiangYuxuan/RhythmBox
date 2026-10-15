@@ -34,7 +34,7 @@ end
 function M:UpdateEnableStatus(optionName)
     if optionName then
         ---@type AceAddon-3.0?
-        local module = self:GetModule(optionName)
+        local module = R:GetModule(optionName)
         if module then
             self:UpdateModuleEnableStatus(module)
         end
