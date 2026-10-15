@@ -68,7 +68,7 @@ const getOutputString = (
                 if (maxLevel % 10 === 9) {
                     text += `{ itemID = ${idText}, ${' '.repeat(itemIDMaxLength - idText.length)}condition = { lessThanLevel = ${(maxLevel + 1).toString()} } }, -- ${itemName}`;
                 } else {
-                    text += `{ itemID = ${idText}, ${' '.repeat(itemIDMaxLength - idText.length)}condition = { maxLevel = ${(maxLevel + 1).toString()} } }, -- ${itemName}`;
+                    text += `{ itemID = ${idText}, ${' '.repeat(itemIDMaxLength - idText.length)}condition = { maxLevel = ${maxLevel.toString()} } }, -- ${itemName}`;
                 }
             } else {
                 text += `{ itemID = ${idText} ${' '.repeat(itemIDMaxLength - idText.length)}}, -- ${itemName}`;
