@@ -37,7 +37,7 @@ jobs:
           add-paths: |
             RhythmBox/*
             Builder/buildInfo.json
-          title: Regenerate
+          title: "chore: regenerate"
           commit-message: "chore: regenerate"
           branch: regenerate
           delete-branch: true
