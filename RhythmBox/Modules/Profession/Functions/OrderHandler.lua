@@ -493,7 +493,7 @@ end
 do
     local knowledgeItemIDs = {
         ---AUTO_GENERATED LEADING ProfessionKnowledgeItem
-        -- Khaz Algar
+        -- The War Within
         [228724] = 1, -- Flicker of Alchemy Knowledge
         [228725] = 2, -- Glimmer of Alchemy Knowledge
         [228726] = 1, -- Flicker of Blacksmithing Knowledge

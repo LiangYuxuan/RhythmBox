@@ -30,6 +30,10 @@
             [
                 "DatabaseMythicPlus",
                 6
+            ],
+            [
+                "ProfessionKnowledgeItem",
+                1
             ]
         ]
     },
