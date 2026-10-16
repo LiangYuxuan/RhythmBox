@@ -1,6 +1,7 @@
 import Smart from './modules/AutoButton/Smart.ts';
 import MythicPlus from './modules/Database/MythicPlus.ts';
 import AutoLogging from './modules/Misc/AutoLogging.ts';
+import KnowledgeItem from './modules/Profession/KnowledgeItem.ts';
 import Consumables from './modules/QuickMacro/Consumables.ts';
 import CorpseToy from './modules/QuickMacro/CorpseToy.ts';
 import Hearthstone from './modules/QuickMacro/Hearthstone.ts';
@@ -13,6 +14,7 @@ const tasks: Task[] = [
     Smart,
     MythicPlus,
     AutoLogging,
+    KnowledgeItem,
     Consumables,
     CorpseToy,
     Hearthstone,

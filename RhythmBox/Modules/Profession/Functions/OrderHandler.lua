@@ -492,6 +492,7 @@ end
 
 do
     local knowledgeItemIDs = {
+        ---AUTO_GENERATED LEADING ProfessionKnowledgeItem
         -- Khaz Algar
         [228724] = 1, -- Flicker of Alchemy Knowledge
         [228725] = 2, -- Glimmer of Alchemy Knowledge
@@ -526,6 +527,7 @@ do
         [246333] = 2, -- Glimmer of Midnight Leatherworking Knowledge
         [246334] = 1, -- Flicker of Midnight Tailoring Knowledge
         [246335] = 2, -- Glimmer of Midnight Tailoring Knowledge
+        ---AUTO_GENERATED TAILING ProfessionKnowledgeItem
     }
 
     ---@param order CraftingOrderInfo
