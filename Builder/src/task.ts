@@ -61,7 +61,7 @@ const getClient = async () => {
 
 const getDataFileStatus = async (
     fileDataID: number,
-    localeFlag: typeof CASCClient.LocaleFlags[keyof typeof CASCClient.LocaleFlags],
+    localeFlag: keyof typeof CASCClient.LocaleFlags,
     cache: Map<number, DataFileStatus>,
     dbFiles: Map<number, DataFileInfo> | undefined,
 ): Promise<DataFileStatus> => {
@@ -78,8 +78,8 @@ const getDataFileStatus = async (
 
     const cKey = cKeys
         // eslint-disable-next-line no-bitwise
-        .find((data) => !!(data.localeFlags & localeFlag));
-    assert(cKey, `No cKey found for fileDataID ${fileDataID.toString()} in locale ${localeFlag.toString()}`);
+        .find((data) => !!(data.localeFlags & CASCClient.LocaleFlags[localeFlag]));
+    assert(cKey, `No cKey found for fileDataID ${fileDataID.toString()} in locale ${localeFlag}`);
 
     const data = await client.getFileByContentKey(cKey.cKey, true);
 
@@ -172,7 +172,7 @@ export const executeTasks = async (tasks: Task[], isForce: boolean) => {
         const fileDatas = await Promise.all(fileDataIDs.map(
             (fileDataID) => getDataFileStatus(
                 fileDataID,
-                CASCClient.LocaleFlags.enUS,
+                'enUS',
                 cache,
                 buildInfo?.dbFiles,
             ),
@@ -181,7 +181,7 @@ export const executeTasks = async (tasks: Task[], isForce: boolean) => {
         const localeFileDatas = await Promise.all(localeFileDataIDs.map(
             (fileDataID) => getDataFileStatus(
                 fileDataID,
-                CASCClient.LocaleFlags.zhCN,
+                'zhCN',
                 localeCache,
                 buildInfo?.localeDbFiles,
             ),
