@@ -901,7 +901,6 @@ QM.MacroButtons.Consumable = {
         if not button.initialized then
             ---@class QuickMacroConsumableSubFrame: Frame
             local subFrame = CreateFrame('Frame', nil, button)
-            subFrame:ClearAllPoints()
             subFrame:SetPoint('BOTTOM', button, 'TOP', 0, -3)
             subFrame:SetSize(4, 4)
             subFrame:Hide()
@@ -913,7 +912,6 @@ QM.MacroButtons.Consumable = {
             local prev = subFrame
             for index, subButtonData in ipairs(data.subButtonList) do
                 local subButton = QM:CreateButton('Consumable' .. index, subFrame)
-                subButton:ClearAllPoints()
                 subButton:SetPoint('BOTTOM', prev, 'TOP', 0, 3)
                 prev = subButton
 
@@ -922,7 +920,6 @@ QM.MacroButtons.Consumable = {
 
             ---@class QuickMacroConsumableOverlay: Button & SecureHandlerStateTemplate & SecureHandlerClickTemplate
             local overlay = CreateFrame('Button', button:GetName() .. 'Overlay', button, 'SecureHandlerStateTemplate, SecureHandlerClickTemplate')
-            overlay:ClearAllPoints()
             overlay:SetAllPoints()
             overlay:SetScript('OnEnter', button:GetScript('OnEnter'))
             overlay:SetScript('OnLeave', button:GetScript('OnLeave'))
@@ -2051,7 +2048,6 @@ function QM:OnInitialize()
     self.external = {}
 
     local container = CreateFrame('Frame', 'RhythmBoxQuickMacroContainer', _G.UIParent)
-    container:ClearAllPoints()
     container:SetPoint('LEFT', _G.UIParent, 'CENTER', R.db.QuickMacro.PositionX, R.db.QuickMacro.PositionY)
     container:SetSize(R.db.QuickMacro.ButtonSize, R.db.QuickMacro.ButtonSize)
     self.container = container

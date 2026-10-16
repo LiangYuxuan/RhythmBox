@@ -69,7 +69,6 @@ function Module:OnAddonLoad()
 
     if IsPublicTestClient() then
         self.button = R:CreateTextButton(_G.ProfessionsFrame.SpecPage)
-        self.button:ClearAllPoints()
         self.button:SetPoint('TOPRIGHT', -10, -40)
         self.button:SetSize(160, 36)
         self.button:SetText("学习全部专精")

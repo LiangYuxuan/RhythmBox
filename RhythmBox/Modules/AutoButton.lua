@@ -716,13 +716,11 @@ function AB:OnInitialize()
     self.questButtons = {}
 
     local slotContainer = CreateFrame('Frame', 'RhythmBoxAutoButtonSlotContainer', _G.UIParent)
-    slotContainer:ClearAllPoints()
     slotContainer:SetPoint('LEFT', _G.UIParent, 'CENTER', R.db.AutoButton.SlotPositionX, R.db.AutoButton.SlotPositionY)
     slotContainer:SetSize(R.db.AutoButton.ButtonSize, R.db.AutoButton.ButtonSize)
     self.slotContainer = slotContainer
 
     local questContainer = CreateFrame('Frame', 'RhythmBoxAutoButtonQuestContainer', _G.UIParent)
-    questContainer:ClearAllPoints()
     questContainer:SetPoint('LEFT', _G.UIParent, 'CENTER', R.db.AutoButton.QuestPositionX, R.db.AutoButton.QuestPositionY)
     questContainer:SetSize(R.db.AutoButton.ButtonSize, R.db.AutoButton.ButtonSize)
     self.questContainer = questContainer
@@ -735,16 +733,10 @@ function AB:OnInitialize()
         table_insert(self.questButtons, questButton)
 
         if i == 1 then
-            slotButton:ClearAllPoints()
             slotButton:SetPoint('LEFT', slotContainer)
-
-            questButton:ClearAllPoints()
             questButton:SetPoint('LEFT', questContainer)
         else
-            slotButton:ClearAllPoints()
             slotButton:SetPoint('LEFT', self.slotButtons[i - 1], 'RIGHT', 3, 0)
-
-            questButton:ClearAllPoints()
             questButton:SetPoint('LEFT', self.questButtons[i - 1], 'RIGHT', 3, 0)
         end
     end

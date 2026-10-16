@@ -1110,7 +1110,6 @@ do
         frame:SetScript('OnUpdate', LineOnUpdate)
 
         local progress = CreateFrame('StatusBar', nil, frame)
-        progress:ClearAllPoints()
         progress:SetAllPoints()
         progress:SetStatusBarTexture(R.texture.default)
         progress:SetStatusBarColor(0, 1, 22 / 255, 0.1)
@@ -1649,14 +1648,12 @@ function RPO:BuildQuickWindow()
     window:Hide()
 
     local buttonOpenOrder = R:CreateTextButton(window)
-    buttonOpenOrder:ClearAllPoints()
     buttonOpenOrder:SetPoint('TOP', window, 'TOP', 0, -10)
     buttonOpenOrder:SetSize(80, 22)
     buttonOpenOrder:SetText("打开订单")
     buttonOpenOrder:SetScript('OnClick', buttonOnClickOpenOrder)
 
     local buttonOpenProfession = R:CreateTextButton(window)
-    buttonOpenProfession:ClearAllPoints()
     buttonOpenProfession:SetPoint('TOP', window, 'TOP', 0, -40)
     buttonOpenProfession:SetSize(80, 22)
     buttonOpenProfession:SetText("打开专业")
