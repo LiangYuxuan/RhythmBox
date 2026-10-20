@@ -1505,6 +1505,18 @@ function CA:CreateWindow()
     window.hasAmountRow.cells[1]:SetText("持有数量")
 end
 
+function CA:OnDisable()
+    self.window:Hide()
+
+    self.buttonOpen:Hide()
+end
+
+function CA:OnEnable()
+    self.window:Hide()
+
+    self.buttonOpen:Show()
+end
+
 function CA:OnInitialize()
     self:CreateWindow()
 
