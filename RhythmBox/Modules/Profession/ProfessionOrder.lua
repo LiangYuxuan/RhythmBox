@@ -174,6 +174,7 @@ local function buttonOnClickHandleCraftingOrders()
 
         -- no lock until UNIT_SPELLCAST_START found this spellID
         if claimedOrder.isRecraft then
+            ---@diagnostic disable-next-line: need-check-nil
             C_TradeSkillUI_RecraftRecipeForOrder(claimedOrder.orderID, claimedOrder.outputItemGUID, data.missingModifiedReagentInfos, nil, data.applyConcentration)
             return
         else
