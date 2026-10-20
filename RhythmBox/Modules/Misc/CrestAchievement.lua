@@ -1,0 +1,1518 @@
+local _, Engine = ...
+local R = Engine.Core
+---@class RhythmBoxAutoLogging: AceAddon-3.0
+local CA = R:NewModule('CrestAchievement')
+
+---@type RhythmBoxMiscModule
+local M = R:GetModule('Misc')
+M:Register(CA, "纹章成就")
+
+-- Lua functions
+local _G = _G
+local ipairs, pairs, rawset, setmetatable, tonumber, wipe = ipairs, pairs, rawset, setmetatable, tonumber, wipe
+local math_ceil = math.ceil
+local math_huge = math.huge
+local math_max = math.max
+local math_min = math.min
+local string_format = string.format
+local string_gmatch = string.gmatch
+local string_match = string.match
+local table_insert = table.insert
+local table_sort = table.sort
+
+-- WoW API / Variables
+local C_Container_GetContainerItemInfo = C_Container.GetContainerItemInfo
+local C_Container_GetContainerNumSlots = C_Container.GetContainerNumSlots
+local C_CurrencyInfo_GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo
+local C_Item_DoesItemContainSpec = C_Item.DoesItemContainSpec
+local C_Item_GetDetailedItemLevelInfo = C_Item.GetDetailedItemLevelInfo
+local C_ItemUpgrade_GetHighWatermarkForSlot = C_ItemUpgrade.GetHighWatermarkForSlot
+local C_ItemUpgrade_GetHighWatermarkSlotForItem = C_ItemUpgrade.GetHighWatermarkSlotForItem
+local CreateFrame = CreateFrame
+local GetAchievementInfo = GetAchievementInfo
+local GetInventoryItemLink = GetInventoryItemLink
+
+local tIndexOf = tIndexOf
+
+local Enum_ItemRedundancySlot_MainhandWeapon = Enum.ItemRedundancySlot.MainhandWeapon
+local Enum_ItemRedundancySlot_Offhand = Enum.ItemRedundancySlot.Offhand
+local Enum_ItemRedundancySlot_OnehandWeapon = Enum.ItemRedundancySlot.OnehandWeapon
+local Enum_ItemRedundancySlot_OnehandWeaponSecond = Enum.ItemRedundancySlot.OnehandWeaponSecond
+local Enum_ItemRedundancySlot_Twohand = Enum.ItemRedundancySlot.Twohand
+
+local BACKPACK_CONTAINER = BACKPACK_CONTAINER
+local INVSLOT_FIRST_EQUIPPED = INVSLOT_FIRST_EQUIPPED
+local INVSLOT_LAST_EQUIPPED = INVSLOT_LAST_EQUIPPED
+local NUM_BAG_SLOTS = NUM_BAG_SLOTS
+
+local atlasReady = '|A:ui-lfg-readymark-raid:14:14|a'
+local atlasDecline = '|A:ui-lfg-declinemark-raid:14:14|a'
+local atlasWarband = '|A:warbands-icon:14:14|a'
+
+---@class ClassUsableWeaponData
+---@field useTwoHand boolean
+---@field useMainAndOffHand boolean
+---@field useOneAndOffHand boolean
+---@field useDualOneHand boolean
+
+---@type ClassUsableWeaponData[]
+local weaponDatas = {
+    {
+        -- Warrior
+        useTwoHand = true,
+        useMainAndOffHand = false,
+        useOneAndOffHand = true,
+        useDualOneHand = true,
+    },
+    {
+        -- Paladin
+        useTwoHand = true,
+        useMainAndOffHand = true,
+        useOneAndOffHand = true,
+        useDualOneHand = false,
+    },
+    {
+        -- Hunter
+        useTwoHand = true,
+        useMainAndOffHand = false,
+        useOneAndOffHand = false,
+        useDualOneHand = true,
+    },
+    {
+        -- Rogue
+        useTwoHand = false,
+        useMainAndOffHand = false,
+        useOneAndOffHand = false,
+        useDualOneHand = true,
+    },
+    {
+        -- Priest
+        useTwoHand = true,
+        useMainAndOffHand = true,
+        useOneAndOffHand = false,
+        useDualOneHand = false,
+    },
+    {
+        -- Death Knight
+        useTwoHand = true,
+        useMainAndOffHand = false,
+        useOneAndOffHand = false,
+        useDualOneHand = true,
+    },
+    {
+        -- Shaman
+        useTwoHand = true,
+        useMainAndOffHand = true,
+        useOneAndOffHand = false,
+        useDualOneHand = true,
+    },
+    {
+        -- Mage
+        useTwoHand = true,
+        useMainAndOffHand = true,
+        useOneAndOffHand = false,
+        useDualOneHand = false,
+    },
+    {
+        -- Warlock
+        useTwoHand = true,
+        useMainAndOffHand = true,
+        useOneAndOffHand = false,
+        useDualOneHand = false,
+    },
+    {
+        -- Monk
+        useTwoHand = true,
+        useMainAndOffHand = true,
+        useOneAndOffHand = false,
+        useDualOneHand = true,
+    },
+    {
+        -- Druid
+        useTwoHand = true,
+        useMainAndOffHand = true,
+        useOneAndOffHand = false,
+        useDualOneHand = false,
+    },
+    {
+        -- Demon Hunter
+        useTwoHand = false,
+        useMainAndOffHand = false,
+        useOneAndOffHand = false,
+        useDualOneHand = true,
+    },
+    {
+        -- Evoker
+        useTwoHand = true,
+        useMainAndOffHand = true,
+        useOneAndOffHand = false,
+        useDualOneHand = false,
+    },
+}
+local weaponData = weaponDatas[R.playerClassID]
+
+---@class ArmorInventorySlotData
+---@field inventorySlotID number
+---@field itemRedundancySlot Enum.ItemRedundancySlot
+---@field multipleItemSlotIndex number?
+---@field name string
+
+---@type ArmorInventorySlotData[]
+local armorSlots = {
+    {
+        inventorySlotID = 1,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Head,
+        name = INVTYPE_HEAD,
+    },
+    {
+        inventorySlotID = 2,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Neck,
+        name = INVTYPE_NECK,
+    },
+    {
+        inventorySlotID = 3,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Shoulder,
+        name = INVTYPE_SHOULDER,
+    },
+    {
+        inventorySlotID = 5,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Chest,
+        name = INVTYPE_CHEST,
+    },
+    {
+        inventorySlotID = 6,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Waist,
+        name = INVTYPE_WAIST,
+    },
+    {
+        inventorySlotID = 7,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Legs,
+        name = INVTYPE_LEGS,
+    },
+    {
+        inventorySlotID = 8,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Feet,
+        name = INVTYPE_FEET,
+    },
+    {
+        inventorySlotID = 9,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Wrist,
+        name = INVTYPE_WRIST,
+    },
+    {
+        inventorySlotID = 10,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Hand,
+        name = INVTYPE_HAND,
+    },
+    {
+        inventorySlotID = 11,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Finger,
+        multipleItemSlotIndex = 1,
+        name = INVTYPE_FINGER .. 1,
+    },
+    {
+        inventorySlotID = 12,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Finger,
+        multipleItemSlotIndex = 2,
+        name = INVTYPE_FINGER .. 2,
+    },
+    {
+        inventorySlotID = 13,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Trinket,
+        multipleItemSlotIndex = 1,
+        name = INVTYPE_TRINKET .. 1,
+    },
+    {
+        inventorySlotID = 14,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Trinket,
+        multipleItemSlotIndex = 2,
+        name = INVTYPE_TRINKET .. 2,
+    },
+    {
+        inventorySlotID = 15,
+        itemRedundancySlot = Enum.ItemRedundancySlot.Cloak,
+        name = INVTYPE_CLOAK,
+    },
+}
+
+
+---@class WeaponCombinationData
+---@field label string
+---@field isTwoHand boolean
+---@field slots ArmorInventorySlotData[]
+
+---@type WeaponCombinationData[]
+local weaponCombinations = {}
+
+if weaponData.useTwoHand then
+    table_insert(weaponCombinations, {
+        label = '双手武器',
+        isTwoHand = true,
+        slots = {
+            {
+                inventorySlotID = 16,
+                itemRedundancySlot = Enum.ItemRedundancySlot.Twohand,
+                name = INVTYPE_2HWEAPON,
+            },
+        },
+    })
+end
+
+if weaponData.useMainAndOffHand then
+    table_insert(weaponCombinations, {
+        label = '智力主副手',
+        isTwoHand = false,
+        slots = {
+            {
+                inventorySlotID = 16,
+                itemRedundancySlot = Enum.ItemRedundancySlot.MainhandWeapon,
+                name = INVTYPE_WEAPONMAINHAND,
+            },
+            {
+                inventorySlotID = 17,
+                itemRedundancySlot = Enum.ItemRedundancySlot.Offhand,
+                name = INVTYPE_WEAPONOFFHAND,
+            },
+        },
+    })
+end
+
+if weaponData.useOneAndOffHand then
+    table_insert(weaponCombinations, {
+        label = '力量主副手',
+        isTwoHand = false,
+        slots = {
+            {
+                inventorySlotID = 16,
+                itemRedundancySlot = Enum.ItemRedundancySlot.OnehandWeapon,
+                name = INVTYPE_WEAPON,
+            },
+            {
+                inventorySlotID = 17,
+                itemRedundancySlot = Enum.ItemRedundancySlot.Offhand,
+                name = INVTYPE_WEAPONOFFHAND,
+            },
+        },
+    })
+end
+
+if weaponData.useDualOneHand then
+    table_insert(weaponCombinations, {
+        label = '双持单手',
+        isTwoHand = false,
+        slots = {
+            {
+                inventorySlotID = 16,
+                itemRedundancySlot = Enum.ItemRedundancySlot.OnehandWeapon,
+                name = INVTYPE_WEAPON,
+            },
+            {
+                inventorySlotID = 17,
+                itemRedundancySlot = Enum.ItemRedundancySlot.OnehandWeaponSecond,
+                name = INVTYPE_WEAPON,
+            },
+        },
+    })
+end
+
+---@class CrestAchievementData
+---@field achievementID number
+---@field achievementItemLevel number
+---@field currencyID number
+---@field maxItemLevel number
+---@field minItemLevel number
+---@field isAverageItemLevel boolean
+---@field conditionalCostScaling number
+---@field maxCurrencyCount number
+---@field upgradePath number[]
+---@field upgradePathCost table<number, number>
+---@field itemLevelXCost table<number, number>
+---@field itemBonusLists table<number, number>
+
+---@type CrestAchievementData[]
+local achievementDatas = {
+    ---AUTO_GENERATED LEADING CrestAchievement
+    -- ItemGroupIlvlScalingID 12
+    {
+        achievementID = 62410, -- Adventurer of the Mist
+        achievementItemLevel = 282,
+        currencyID = 3442, -- Adventurer Mistcrest
+        maxItemLevel = 282,
+        minItemLevel = 266,
+        isAverageItemLevel = false,
+        conditionalCostScaling = 0.5,
+        maxCurrencyCount = 100,
+        upgradePath = {
+            266, -- Adventurer 1/6
+            269, -- Adventurer 2/6
+            272, -- Adventurer 3/6
+            276, -- Adventurer 4/6
+            279, -- Adventurer 5/6
+            282, -- Adventurer 6/6
+        },
+        upgradePathCost = {
+            [266] = 0,  -- Adventurer 1/6
+            [269] = 20, -- Adventurer 2/6
+            [272] = 20, -- Adventurer 3/6
+            [276] = 20, -- Adventurer 4/6
+            [279] = 20, -- Adventurer 5/6
+            [282] = 20, -- Adventurer 6/6
+        },
+        itemLevelXCost = {
+            [266] = 100, -- Adventurer 1/6
+            [269] = 80,  -- Adventurer 2/6
+            [272] = 60,  -- Adventurer 3/6
+            [276] = 40,  -- Adventurer 4/6
+            [279] = 20,  -- Adventurer 5/6
+            [282] = 0,   -- Adventurer 6/6
+        },
+        itemBonusLists = {
+            [12817] = 100, -- Adventurer 1/6
+            [12818] = 80,  -- Adventurer 2/6
+            [12819] = 60,  -- Adventurer 3/6
+            [12820] = 40,  -- Adventurer 4/6
+            [12821] = 20,  -- Adventurer 5/6
+            [12822] = 0,   -- Adventurer 6/6
+        },
+    },
+    {
+        achievementID = 62411, -- Veteran of the Mist
+        achievementItemLevel = 295,
+        currencyID = 3443, -- Veteran Mistcrest
+        maxItemLevel = 295,
+        minItemLevel = 279,
+        isAverageItemLevel = false,
+        conditionalCostScaling = 0.5,
+        maxCurrencyCount = 100,
+        upgradePath = {
+            279, -- Veteran 1/6
+            282, -- Veteran 2/6
+            285, -- Veteran 3/6
+            289, -- Veteran 4/6
+            292, -- Veteran 5/6
+            295, -- Veteran 6/6
+        },
+        upgradePathCost = {
+            [279] = 0,  -- Veteran 1/6
+            [282] = 20, -- Veteran 2/6
+            [285] = 20, -- Veteran 3/6
+            [289] = 20, -- Veteran 4/6
+            [292] = 20, -- Veteran 5/6
+            [295] = 20, -- Veteran 6/6
+        },
+        itemLevelXCost = {
+            [279] = 100, -- Veteran 1/6
+            [282] = 80,  -- Veteran 2/6
+            [285] = 60,  -- Veteran 3/6
+            [289] = 40,  -- Veteran 4/6
+            [292] = 20,  -- Veteran 5/6
+            [295] = 0,   -- Veteran 6/6
+        },
+        itemBonusLists = {
+            [12825] = 100, -- Veteran 1/6
+            [12826] = 80,  -- Veteran 2/6
+            [12827] = 60,  -- Veteran 3/6
+            [12828] = 40,  -- Veteran 4/6
+            [12829] = 20,  -- Veteran 5/6
+            [12830] = 0,   -- Veteran 6/6
+        },
+    },
+    {
+        achievementID = 62412, -- Champion of the Mist
+        achievementItemLevel = 308,
+        currencyID = 3444, -- Champion Mistcrest
+        maxItemLevel = 308,
+        minItemLevel = 292,
+        isAverageItemLevel = false,
+        conditionalCostScaling = 0.5,
+        maxCurrencyCount = 100,
+        upgradePath = {
+            292, -- Champion 1/6
+            295, -- Champion 2/6
+            298, -- Champion 3/6
+            302, -- Champion 4/6
+            305, -- Champion 5/6
+            308, -- Champion 6/6
+        },
+        upgradePathCost = {
+            [292] = 0,  -- Champion 1/6
+            [295] = 20, -- Champion 2/6
+            [298] = 20, -- Champion 3/6
+            [302] = 20, -- Champion 4/6
+            [305] = 20, -- Champion 5/6
+            [308] = 20, -- Champion 6/6
+        },
+        itemLevelXCost = {
+            [292] = 100, -- Champion 1/6
+            [295] = 80,  -- Champion 2/6
+            [298] = 60,  -- Champion 3/6
+            [302] = 40,  -- Champion 4/6
+            [305] = 20,  -- Champion 5/6
+            [308] = 0,   -- Champion 6/6
+        },
+        itemBonusLists = {
+            [12833] = 100, -- Champion 1/6
+            [12834] = 80,  -- Champion 2/6
+            [12835] = 60,  -- Champion 3/6
+            [12836] = 40,  -- Champion 4/6
+            [12837] = 20,  -- Champion 5/6
+            [12838] = 0,   -- Champion 6/6
+        },
+    },
+    {
+        achievementID = 62414, -- Hero of the Mist
+        achievementItemLevel = 321,
+        currencyID = 3445, -- Hero Mistcrest
+        maxItemLevel = 321,
+        minItemLevel = 305,
+        isAverageItemLevel = false,
+        conditionalCostScaling = 0.5,
+        maxCurrencyCount = 100,
+        upgradePath = {
+            305, -- Hero 1/6
+            308, -- Hero 2/6
+            311, -- Hero 3/6
+            315, -- Hero 4/6
+            318, -- Hero 5/6
+            321, -- Hero 6/6
+        },
+        upgradePathCost = {
+            [305] = 0,  -- Hero 1/6
+            [308] = 20, -- Hero 2/6
+            [311] = 20, -- Hero 3/6
+            [315] = 20, -- Hero 4/6
+            [318] = 20, -- Hero 5/6
+            [321] = 20, -- Hero 6/6
+        },
+        itemLevelXCost = {
+            [305] = 100, -- Hero 1/6
+            [308] = 80,  -- Hero 2/6
+            [311] = 60,  -- Hero 3/6
+            [315] = 40,  -- Hero 4/6
+            [318] = 20,  -- Hero 5/6
+            [321] = 0,   -- Hero 6/6
+        },
+        itemBonusLists = {
+            [12841] = 100, -- Hero 1/6
+            [12842] = 80,  -- Hero 2/6
+            [12843] = 60,  -- Hero 3/6
+            [12844] = 40,  -- Hero 4/6
+            [12845] = 20,  -- Hero 5/6
+            [12846] = 0,   -- Hero 6/6
+        },
+    },
+    {
+        achievementID = 62416, -- Myth of the Mist
+        achievementItemLevel = 331,
+        currencyID = 3446, -- Myth Mistcrest
+        maxItemLevel = 334,
+        minItemLevel = 318,
+        isAverageItemLevel = true,
+        conditionalCostScaling = 0.5,
+        maxCurrencyCount = 100,
+        upgradePath = {
+            318, -- Myth 1/6
+            321, -- Myth 2/6
+            324, -- Myth 3/6
+            328, -- Myth 4/6
+            331, -- Myth 5/6
+            334, -- Myth 6/6
+        },
+        upgradePathCost = {
+            [318] = 0,  -- Myth 1/6
+            [321] = 20, -- Myth 2/6
+            [324] = 20, -- Myth 3/6
+            [328] = 20, -- Myth 4/6
+            [331] = 20, -- Myth 5/6
+            [334] = 20, -- Myth 6/6
+        },
+        itemLevelXCost = {
+            [318] = 100, -- Myth 1/6
+            [321] = 80,  -- Myth 2/6
+            [324] = 60,  -- Myth 3/6
+            [328] = 40,  -- Myth 4/6
+            [331] = 20,  -- Myth 5/6
+            [334] = 0,   -- Myth 6/6
+        },
+        itemBonusLists = {
+            [12849] = 100, -- Myth 1/6
+            [12850] = 80,  -- Myth 2/6
+            [12851] = 60,  -- Myth 3/6
+            [12852] = 40,  -- Myth 4/6
+            [12853] = 20,  -- Myth 5/6
+            [12854] = 0,   -- Myth 6/6
+        },
+    },
+    ---AUTO_GENERATED TAILING CrestAchievement
+}
+
+---@type table<number, number>
+local itemBonusListXAchievementIndex = {}
+for index, data in ipairs(achievementDatas) do
+    for itemBonusListID in pairs(data.itemBonusLists) do
+        itemBonusListXAchievementIndex[itemBonusListID] = index
+    end
+end
+
+do
+    ---@type table<Enum.ItemRedundancySlot, number[]>
+    local itemRedundancySlotItemLevels = {}
+    ---@type table<number, table<Enum.ItemRedundancySlot, number>>
+    local upgradePathItemCount = {}
+
+    local itemStringPattern = '^\124cnIQ[0-9]:\124Hitem:%d+:%d*:%d*:%d*:%d*:%d*:%d*:%d*:%d*:%d*:%d*:%d*:(.+)\124h%[.+%]\124h\124r$'
+
+    ---@param itemLink string
+    ---@return number?
+    local function ParseItemLink(itemLink)
+        ---@type string?
+        local itemBonusString = string_match(itemLink, itemStringPattern)
+        if not itemBonusString then return nil end
+
+        local currentBonusIndex = 0
+        local numBonusIds
+        for text in string_gmatch(itemBonusString, '(%d*):') do
+            ---@type number
+            local value = tonumber(text, 10)
+            if not numBonusIds then
+                numBonusIds = value
+            else
+                currentBonusIndex = currentBonusIndex + 1
+
+                if itemBonusListXAchievementIndex[value] then
+                    return itemBonusListXAchievementIndex[value]
+                end
+
+                if currentBonusIndex >= numBonusIds then
+                    break
+                end
+            end
+        end
+    end
+
+    ---@param itemLink string
+    local function ProcessItem(itemLink)
+        local containSpec = C_Item_DoesItemContainSpec(itemLink, R.playerClassID)
+        if not containSpec then return end
+
+        ---@type Enum.ItemRedundancySlot?
+        local itemRedundancySlot = C_ItemUpgrade_GetHighWatermarkSlotForItem(itemLink)
+        if itemRedundancySlot then
+            ---@type number?
+            local itemLevel = C_Item_GetDetailedItemLevelInfo(itemLink)
+            if itemLevel then
+                itemRedundancySlotItemLevels[itemRedundancySlot] = itemRedundancySlotItemLevels[itemRedundancySlot] or {}
+                table_insert(itemRedundancySlotItemLevels[itemRedundancySlot], itemLevel)
+
+                local achievementIndex = ParseItemLink(itemLink)
+                if achievementIndex then
+                    upgradePathItemCount[achievementIndex] = upgradePathItemCount[achievementIndex] or {}
+                    upgradePathItemCount[achievementIndex][itemRedundancySlot] = (upgradePathItemCount[achievementIndex][itemRedundancySlot] or 0) + 1
+                end
+            end
+        end
+    end
+
+    ---@param a number
+    ---@param b number
+    ---@return boolean
+    local function ItemLevelCompare(a, b)
+        return a > b
+    end
+
+    ---@return table<Enum.ItemRedundancySlot, number[]> itemRedundancySlotItemLevels, table<number, table<Enum.ItemRedundancySlot, number>> upgradePathItemCount
+    function CA:ScanItems()
+        wipe(itemRedundancySlotItemLevels)
+        wipe(upgradePathItemCount)
+
+        for i = INVSLOT_FIRST_EQUIPPED, INVSLOT_LAST_EQUIPPED do
+            local itemLink = GetInventoryItemLink('player', i)
+            if itemLink then
+                ProcessItem(itemLink)
+            end
+        end
+
+        for bagID = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
+            local numSlots = C_Container_GetContainerNumSlots(bagID)
+            for slotID = 1, numSlots do
+                local itemInfo = C_Container_GetContainerItemInfo(bagID, slotID)
+                if itemInfo then
+                    ProcessItem(itemInfo.hyperlink)
+                end
+            end
+        end
+
+        for _, itemLevels in pairs(itemRedundancySlotItemLevels) do
+            table_sort(itemLevels, ItemLevelCompare)
+        end
+
+        -- XXX: Onehand Weapon Second special handle
+        if weaponData.useDualOneHand then
+            itemRedundancySlotItemLevels[Enum_ItemRedundancySlot_OnehandWeaponSecond] = { itemRedundancySlotItemLevels[Enum_ItemRedundancySlot_OnehandWeapon][2] }
+            for _, data in pairs(upgradePathItemCount) do
+                if data[Enum_ItemRedundancySlot_OnehandWeapon] then
+                    data[Enum_ItemRedundancySlot_OnehandWeaponSecond] = data[Enum_ItemRedundancySlot_OnehandWeapon] - 1
+                end
+            end
+        end
+
+        return itemRedundancySlotItemLevels, upgradePathItemCount
+    end
+end
+
+---@param achievementData CrestAchievementData
+---@param slotItemLevel number
+---@param accountHighWatermark number
+---@param completed boolean
+---@return (number cost) | (number cost, number[] costList, number[] rewardList)
+function CA:GetItemUpgradeCost(achievementData, slotItemLevel, accountHighWatermark, completed)
+    local multiplier = completed and achievementData.conditionalCostScaling or 1
+
+    if not achievementData.isAverageItemLevel then
+        local cost = slotItemLevel >= achievementData.minItemLevel and achievementData.itemLevelXCost[slotItemLevel] or achievementData.maxCurrencyCount
+        local result = math_ceil(cost * multiplier)
+        return result
+    end
+
+    local cost = 0
+    ---@type number[]
+    local costList = {}
+    ---@type number[]
+    local rewardList = {}
+
+    local index = tIndexOf(achievementData.upgradePath, slotItemLevel) or 1
+    for i = index + 1, #achievementData.upgradePath do
+        local itemLevel = achievementData.upgradePath[i]
+        local itemLevelCost = achievementData.upgradePathCost[itemLevel] * (itemLevel <= accountHighWatermark and multiplier or 1)
+
+        cost = cost + itemLevelCost
+        table_insert(costList, cost)
+        table_insert(rewardList, itemLevel - slotItemLevel)
+    end
+
+    return cost, costList, rewardList
+end
+
+---@param currentItemLevel number
+---@param targetItemLevel number
+---@param costs number[][]
+---@param rewards number[][]
+---@return number minCost, table<number, number> slotUpgradeCount
+function CA:GetUpgradeMinCost(currentItemLevel, targetItemLevel, costs, rewards)
+    ---@type number
+    local dpLength = 0
+    ---@type table<number, table<number, number>>
+    local dp = {
+        [0] = { [0] = 0 },
+    }
+    local meta = {
+        __index = function()
+            return math_huge
+        end,
+        ---@param t table<number, number>
+        ---@param k number
+        ---@param v number
+        __newindex = function(t, k, v)
+            if k > dpLength then
+                dpLength = k
+            end
+
+            rawset(t, k, v)
+        end,
+    }
+    setmetatable(dp[0], meta)
+
+    ---@type table<number, table<number, number>>
+    local prevRecord = {}
+    ---@type table<number, table<number, number>>
+    local costRecord = {}
+
+    for slotIndex, slotCosts in ipairs(costs) do
+        local maxTimes = #slotCosts
+        local slotRewards = rewards[slotIndex]
+        local prev = dp[slotIndex - 1]
+
+        dp[slotIndex] = {}
+        prevRecord[slotIndex] = {}
+        costRecord[slotIndex] = {}
+
+        local curr = dp[slotIndex]
+        setmetatable(curr, meta)
+
+        for i = dpLength, 0, -1 do
+            if prev[i] then
+                -- can be not upgraded, just copy the previous value
+                -- can not check curr[i] as it must be not setted yet
+                curr[i] = prev[i]
+                prevRecord[slotIndex][i] = i
+                costRecord[slotIndex][i] = 0
+
+                for times = maxTimes, 1, -1 do
+                    local reward = slotRewards[times]
+                    local cost = slotCosts[times]
+
+                    if prev[i] + cost < curr[i + reward] then
+                        curr[i + reward] = prev[i] + cost
+                        prevRecord[slotIndex][i + reward] = i
+                        costRecord[slotIndex][i + reward] = times
+                    end
+                end
+            end
+        end
+    end
+
+    local slotIndex = #costs
+    local last = dp[slotIndex]
+    local minCost = math_huge
+    local minCostIndex = 0
+    for i = dpLength, targetItemLevel - currentItemLevel, -1 do
+        if last[i] < minCost then
+            minCost = last[i]
+            minCostIndex = i
+        end
+    end
+
+    ---@type table<number, number>
+    local slotUpgradeCount = {}
+    local currentIndex = minCostIndex
+    while currentIndex > 0 do
+        if costRecord[slotIndex][currentIndex] > 0 then
+            slotUpgradeCount[slotIndex] = costRecord[slotIndex][currentIndex]
+        end
+
+        currentIndex = prevRecord[slotIndex][currentIndex]
+        slotIndex = slotIndex - 1
+    end
+
+    return minCost, slotUpgradeCount
+end
+
+---@alias SlotUpgradeCount { slotName: string, times: number }
+
+---@class CrestAchievementCostData
+---@field totalCost number
+---@field minCost number?
+---@field minCostSlotUpgradeCount SlotUpgradeCount[]?
+---@field vaildMinCost number?
+---@field vaildMinCostSlotUpgradeCount SlotUpgradeCount[]?
+
+---@return ('completed' | 'warband' | 'incompleted')[] achievementStatus, CrestAchievementCostData[] achievementCost, number[] armorSlotItemLevelDisplay, table<number, number[]> armorSlotUpgradeCost, table<number, boolean[]> armorSlotHasVaildItem, number[][] weaponCombinationItemLevelDisplay, table<number, number[]>[] weaponCombinationUpgradeCost, table<number, boolean[]>[] weaponCombinationHasVaildItem
+function CA:GetItemUpgradeData()
+    local itemRedundancySlotItemLevels, upgradePathItemCount = self:ScanItems()
+
+    ---@type ('completed' | 'warband' | 'incompleted')[]
+    local achievementStatus = {}
+    for index, data in ipairs(achievementDatas) do
+        local _, _, _, completed, _, _, _, _, _, _, _, _, wasEarnedByMe = GetAchievementInfo(data.achievementID)
+        achievementStatus[index] = (completed and wasEarnedByMe) and 'completed' or (completed and 'warband' or 'incompleted')
+    end
+
+    local armorSlotItemLevel = 0
+    ---@type number[]
+    local armorSlotItemLevelDisplay = {}
+    ---@type table<number, number[]>
+    local armorSlotUpgradeCost = {}
+    ---@type table<number, boolean[]>
+    local armorSlotHasVaildItem = {}
+    ---@type table<number, number[][]>
+    local armorCostList = {}
+    ---@type table<number, number[][]>
+    local armorRewardList = {}
+
+    for index, armorSlotData in ipairs(armorSlots) do
+        local slotIndex = armorSlotData.multipleItemSlotIndex or 1
+        local itemRedundancySlot = armorSlotData.itemRedundancySlot
+
+        local characterHighWatermark, accountHighWatermark = C_ItemUpgrade_GetHighWatermarkForSlot(itemRedundancySlot)
+
+        local slotItemLevels = itemRedundancySlotItemLevels[itemRedundancySlot]
+        local slotItemLevel = slotItemLevels[slotIndex] or characterHighWatermark
+        armorSlotItemLevelDisplay[index] = slotItemLevel
+        armorSlotItemLevel = armorSlotItemLevel + slotItemLevel
+
+        for achievementIndex, achievementData in ipairs(achievementDatas) do
+            armorSlotUpgradeCost[achievementIndex] = armorSlotUpgradeCost[achievementIndex] or {}
+            armorSlotHasVaildItem[achievementIndex] = armorSlotHasVaildItem[achievementIndex] or {}
+            if achievementData.isAverageItemLevel then
+                armorCostList[achievementIndex] = armorCostList[achievementIndex] or {}
+                armorRewardList[achievementIndex] = armorRewardList[achievementIndex] or {}
+            end
+
+            if slotItemLevel >= achievementData.maxItemLevel then
+                armorSlotUpgradeCost[achievementIndex][index] = 0
+                armorSlotHasVaildItem[achievementIndex][index] = true
+
+                if achievementData.isAverageItemLevel then
+                    armorCostList[achievementIndex][index] = {}
+                    armorRewardList[achievementIndex][index] = {}
+                end
+            else
+                local slotCost, slotCostList, slotRewardList = self:GetItemUpgradeCost(achievementData, slotItemLevel, accountHighWatermark, achievementStatus[achievementIndex] ~= 'incompleted')
+                local hasVaildItem = upgradePathItemCount[achievementIndex]
+                    and upgradePathItemCount[achievementIndex][itemRedundancySlot]
+                    and upgradePathItemCount[achievementIndex][itemRedundancySlot] >= slotIndex
+
+                armorSlotUpgradeCost[achievementIndex][index] = slotCost
+                armorSlotHasVaildItem[achievementIndex][index] = hasVaildItem
+
+                if slotCostList then
+                    armorCostList[achievementIndex][index] = slotCostList
+                    armorRewardList[achievementIndex][index] = slotRewardList
+                end
+            end
+        end
+    end
+
+    ---@type number[]
+    local weaponCombinationItemLevel = {}
+    ---@type number[][]
+    local weaponCombinationItemLevelDisplay = {}
+    ---@type table<number, number[]>[]
+    local weaponCombinationUpgradeCost = {}
+    ---@type table<number, boolean[]>[]
+    local weaponCombinationHasVaildItem = {}
+    ---@type table<number, number[][]>[]
+    local weaponCombinationCostList = {}
+    ---@type table<number, number[][]>[]
+    local weaponCombinationRewardList = {}
+
+    local twoHandCharacterHighWatermark, twoHandAccountHighWatermark = C_ItemUpgrade_GetHighWatermarkForSlot(Enum_ItemRedundancySlot_Twohand)
+    local mainHandCharacterHighWatermark, mainHandAccountHighWatermark = C_ItemUpgrade_GetHighWatermarkForSlot(Enum_ItemRedundancySlot_MainhandWeapon)
+    local oneHandCharacterHighWatermark, oneHandAccountHighWatermark = C_ItemUpgrade_GetHighWatermarkForSlot(Enum_ItemRedundancySlot_OnehandWeapon)
+    local offHandCharacterHighWatermark, offHandAccountHighWatermark = C_ItemUpgrade_GetHighWatermarkForSlot(Enum_ItemRedundancySlot_Offhand)
+    local oneHandSecondCharacterHighWatermark, oneHandSecondAccountHighWatermark = C_ItemUpgrade_GetHighWatermarkForSlot(Enum_ItemRedundancySlot_OnehandWeaponSecond)
+
+    local twoHandCharacterItemLevel = twoHandCharacterHighWatermark
+    local twoHandAccountItemLevel = twoHandAccountHighWatermark
+    local mainHandCharacterItemLevel = math_max(mainHandCharacterHighWatermark, oneHandCharacterHighWatermark)
+    local mainHandAccountItemLevel = math_max(mainHandAccountHighWatermark, oneHandAccountHighWatermark)
+    local offHandCharacterItemLevel = math_max(offHandCharacterHighWatermark, oneHandSecondCharacterHighWatermark)
+    local offHandAccountItemLevel = math_max(offHandAccountHighWatermark, oneHandSecondAccountHighWatermark)
+
+    for index, weaponCombination in ipairs(weaponCombinations) do
+        weaponCombinationItemLevel[index] = 0
+        weaponCombinationItemLevelDisplay[index] = {}
+        weaponCombinationUpgradeCost[index] = {}
+        weaponCombinationHasVaildItem[index] = {}
+        weaponCombinationCostList[index] = {}
+        weaponCombinationRewardList[index] = {}
+
+        for i, slotData in ipairs(weaponCombination.slots) do
+            local itemRedundancySlot = slotData.itemRedundancySlot
+
+            local characterHighWatermark, accountHighWatermark = C_ItemUpgrade_GetHighWatermarkForSlot(itemRedundancySlot)
+
+            local slotItemLevels = itemRedundancySlotItemLevels[itemRedundancySlot]
+            local slotItemLevel = slotItemLevels[1] or characterHighWatermark
+            weaponCombinationItemLevelDisplay[index][i] = slotItemLevel
+
+            -- handle weapon discount here
+            -- two hand weapon can discount main hand and off hand weapon
+            -- main hand weapon can discount other main hand weapon
+            -- off hand weapon can discount other off hand weapon
+            -- main hand and off hand weapon combination can discount two hand weapon
+            if weaponCombination.isTwoHand then
+                -- this is two hand weapon
+                -- handle main and off hand combination to discount two hand weapon
+                local combinationCharacterItemLevel = math_min(mainHandCharacterItemLevel, offHandCharacterItemLevel)
+                local combinationAccountItemLevel = math_min(mainHandAccountItemLevel, offHandAccountItemLevel)
+
+                if slotItemLevel < combinationCharacterItemLevel then
+                    slotItemLevel = combinationCharacterItemLevel
+                end
+
+                if accountHighWatermark < combinationAccountItemLevel then
+                    accountHighWatermark = combinationAccountItemLevel
+                end
+
+                weaponCombinationItemLevel[index] = weaponCombinationItemLevel[index] + slotItemLevel * 2 -- two hand weapon counts double
+            else
+                -- this is main hand and off hand combination
+                -- handle two hand weapon to discount main hand and off hand weapon
+                if slotItemLevel < twoHandCharacterItemLevel then
+                    slotItemLevel = twoHandCharacterItemLevel
+                end
+
+                if accountHighWatermark < twoHandAccountItemLevel then
+                    accountHighWatermark = twoHandAccountItemLevel
+                end
+
+                if i <= 1 then
+                    -- this is main hand weapon
+                    -- handle main hand weapon to discount other main hand weapon
+                    if slotItemLevel < mainHandCharacterItemLevel then
+                        slotItemLevel = mainHandCharacterItemLevel
+                    end
+
+                    if accountHighWatermark < mainHandAccountItemLevel then
+                        accountHighWatermark = mainHandAccountItemLevel
+                    end
+                else
+                    -- this is off hand weapon
+                    -- handle off hand weapon to discount other off hand weapon
+                    if slotItemLevel < offHandCharacterItemLevel then
+                        slotItemLevel = offHandCharacterItemLevel
+                    end
+
+                    if accountHighWatermark < offHandAccountItemLevel then
+                        accountHighWatermark = offHandAccountItemLevel
+                    end
+                end
+
+                weaponCombinationItemLevel[index] = weaponCombinationItemLevel[index] + slotItemLevel
+            end
+
+            for achievementIndex, achievementData in ipairs(achievementDatas) do
+                weaponCombinationUpgradeCost[index][achievementIndex] = weaponCombinationUpgradeCost[index][achievementIndex] or {}
+                weaponCombinationHasVaildItem[index][achievementIndex] = weaponCombinationHasVaildItem[index][achievementIndex] or {}
+                if achievementData.isAverageItemLevel then
+                    weaponCombinationCostList[index][achievementIndex] = weaponCombinationCostList[index][achievementIndex] or {}
+                    weaponCombinationRewardList[index][achievementIndex] = weaponCombinationRewardList[index][achievementIndex] or {}
+                end
+
+                if slotItemLevel >= achievementData.maxItemLevel then
+                    weaponCombinationUpgradeCost[index][achievementIndex][i] = 0
+                    weaponCombinationHasVaildItem[index][achievementIndex][i] = true
+
+                    if achievementData.isAverageItemLevel then
+                        weaponCombinationCostList[index][achievementIndex][i] = {}
+                        weaponCombinationRewardList[index][achievementIndex][i] = {}
+                    end
+                else
+                    local slotCost, slotCostList, slotRewardList = self:GetItemUpgradeCost(achievementData, slotItemLevel, accountHighWatermark, achievementStatus[achievementIndex] ~= 'incompleted')
+                    local hasVaildItem = upgradePathItemCount[achievementIndex]
+                        and upgradePathItemCount[achievementIndex][itemRedundancySlot]
+                        and upgradePathItemCount[achievementIndex][itemRedundancySlot] >= 1
+
+                    weaponCombinationUpgradeCost[index][achievementIndex][i] = slotCost
+                    weaponCombinationHasVaildItem[index][achievementIndex][i] = hasVaildItem
+
+                    if slotCostList then
+                        if weaponCombination.isTwoHand then
+                            -- two hand weapon counts double, so double the reward
+                            for j = 1, #slotRewardList do
+                                slotRewardList[j] = slotRewardList[j] * 2
+                            end
+                        end
+
+                        weaponCombinationCostList[index][achievementIndex][i] = slotCostList
+                        weaponCombinationRewardList[index][achievementIndex][i] = slotRewardList
+                    end
+                end
+            end
+        end
+    end
+
+    ---@type CrestAchievementCostData[]
+    local achievementCost = {}
+    for achievementIndex, achievementData in ipairs(achievementDatas) do
+        local armorCosts = 0
+        for _, slotCost in ipairs(armorSlotUpgradeCost[achievementIndex]) do
+            armorCosts = armorCosts + slotCost
+        end
+
+        local minWeaponCost = math_huge
+        for _, combinationCost in ipairs(weaponCombinationUpgradeCost) do
+            local weaponCosts = 0
+            for _, slotCost in ipairs(combinationCost[achievementIndex]) do
+                weaponCosts = weaponCosts + slotCost
+            end
+
+            if weaponCosts < minWeaponCost then
+                minWeaponCost = weaponCosts
+            end
+        end
+
+        local totalCost = armorCosts + minWeaponCost
+
+        if not achievementData.isAverageItemLevel then
+            achievementCost[achievementIndex] = {
+                totalCost = totalCost,
+            }
+        elseif achievementStatus[achievementIndex] == 'completed' then
+            achievementCost[achievementIndex] = {
+                totalCost = totalCost,
+                minCost = 0,
+                vaildMinCost = 0,
+            }
+        else
+            ---@class CrestAchievementUpgradePlan
+            ---@field weaponCombinationIndex number
+            ---@field itemLevel number
+            ---@field costs number[][]
+            ---@field rewards number[][]
+
+            ---@type CrestAchievementUpgradePlan[]
+            local plans = {}
+            ---@type CrestAchievementUpgradePlan[]
+            local vaildPlans = {}
+
+            for index, weaponCombination in ipairs(weaponCombinations) do
+                local itemLevel = armorSlotItemLevel + weaponCombinationItemLevel[index]
+                local costs = {}
+                local rewards = {}
+                local vaildCosts = {}
+                local vaildRewards = {}
+
+                for i = 1, #weaponCombination.slots do
+                    table_insert(costs, weaponCombinationCostList[index][achievementIndex][i])
+                    table_insert(rewards, weaponCombinationRewardList[index][achievementIndex][i])
+
+                    if weaponCombinationHasVaildItem[index][achievementIndex][i] then
+                        table_insert(vaildCosts, weaponCombinationCostList[index][achievementIndex][i])
+                        table_insert(vaildRewards, weaponCombinationRewardList[index][achievementIndex][i])
+                    else
+                        table_insert(vaildCosts, {})
+                        table_insert(vaildRewards, {})
+                    end
+                end
+
+                for i = 1, #armorSlots do
+                    table_insert(costs, armorCostList[achievementIndex][i])
+                    table_insert(rewards, armorRewardList[achievementIndex][i])
+
+                    if armorSlotHasVaildItem[achievementIndex][i] then
+                        table_insert(vaildCosts, armorCostList[achievementIndex][i])
+                        table_insert(vaildRewards, armorRewardList[achievementIndex][i])
+                    else
+                        table_insert(vaildCosts, {})
+                        table_insert(vaildRewards, {})
+                    end
+                end
+
+                table_insert(plans, {
+                    weaponCombinationIndex = index,
+                    itemLevel = itemLevel,
+                    costs = costs,
+                    rewards = rewards,
+                })
+
+                table_insert(vaildPlans, {
+                    weaponCombinationIndex = index,
+                    itemLevel = itemLevel,
+                    costs = vaildCosts,
+                    rewards = vaildRewards,
+                })
+            end
+
+            local targetItemLevel = achievementData.achievementItemLevel * 16
+
+            local minCost = math_huge
+            ---@type SlotUpgradeCount[]
+            local minCostSlotUpgradeCount = {}
+            for _, plan in ipairs(plans) do
+                local cost, slotUpgradeCount = self:GetUpgradeMinCost(plan.itemLevel, targetItemLevel, plan.costs, plan.rewards)
+                if cost < minCost then
+                    minCost = cost
+
+                    wipe(minCostSlotUpgradeCount)
+                    local weaponCombination = weaponCombinations[plan.weaponCombinationIndex]
+                    local weaponSlotCount = #weaponCombination.slots
+                    for slotIndex = 1, #plan.costs do
+                        if slotUpgradeCount[slotIndex] then
+                            local slotName = slotIndex <= weaponSlotCount and weaponCombination.slots[slotIndex].name or armorSlots[slotIndex - weaponSlotCount].name
+                            table_insert(minCostSlotUpgradeCount, { slotName = slotName, times = slotUpgradeCount[slotIndex] })
+                        end
+                    end
+                end
+            end
+
+            local vaildMinCost = math_huge
+            ---@type SlotUpgradeCount[]
+            local vaildMinCostSlotUpgradeCount = {}
+            for _, plan in ipairs(vaildPlans) do
+                local cost, slotUpgradeCount = self:GetUpgradeMinCost(plan.itemLevel, targetItemLevel, plan.costs, plan.rewards)
+                if cost < vaildMinCost then
+                    vaildMinCost = cost
+
+                    wipe(vaildMinCostSlotUpgradeCount)
+                    local weaponCombination = weaponCombinations[plan.weaponCombinationIndex]
+                    local weaponSlotCount = #weaponCombination.slots
+                    for slotIndex = 1, #plan.costs do
+                        if slotUpgradeCount[slotIndex] then
+                            local slotName = slotIndex <= weaponSlotCount and weaponCombination.slots[slotIndex].name or armorSlots[slotIndex - weaponSlotCount].name
+                            table_insert(vaildMinCostSlotUpgradeCount, { slotName = slotName, times = slotUpgradeCount[slotIndex] })
+                        end
+                    end
+                end
+            end
+
+            achievementCost[achievementIndex] = {
+                totalCost = totalCost,
+                minCost = minCost,
+                minCostSlotUpgradeCount = minCostSlotUpgradeCount,
+                vaildMinCost = vaildMinCost ~= math_huge and vaildMinCost or nil,
+                vaildMinCostSlotUpgradeCount = vaildMinCost ~= math_huge and vaildMinCostSlotUpgradeCount or nil,
+            }
+        end
+    end
+
+    return achievementStatus, achievementCost, armorSlotItemLevelDisplay, armorSlotUpgradeCost, armorSlotHasVaildItem, weaponCombinationItemLevelDisplay, weaponCombinationUpgradeCost, weaponCombinationHasVaildItem
+end
+
+function CA:UpdateFrame()
+    local achievementStatus, achievementCost, armorSlotItemLevelDisplay, armorSlotUpgradeCost, armorSlotHasVaildItem, weaponCombinationItemLevelDisplay, weaponCombinationUpgradeCost, weaponCombinationHasVaildItem = self:GetItemUpgradeData()
+
+    for i, row in ipairs(self.window.armorRows) do
+        row.cells[2]:SetText(armorSlotItemLevelDisplay[i])
+    end
+
+    for i, rows in ipairs(self.window.weaponRows) do
+        for j, row in ipairs(rows) do
+            row.cells[2]:SetText(weaponCombinationItemLevelDisplay[i][j])
+        end
+    end
+
+    for achievementIndex, achievementData in ipairs(achievementDatas) do
+        local cellIndex = achievementIndex + 2
+
+        if achievementStatus[achievementIndex] == 'completed' then
+            self.window.statusRow.cells[cellIndex]:SetText(atlasReady)
+        elseif achievementStatus[achievementIndex] == 'incompleted' then
+            self.window.statusRow.cells[cellIndex]:SetText(atlasDecline)
+        else
+            self.window.statusRow.cells[cellIndex]:SetText(atlasWarband)
+        end
+
+        local isAllHasVaildItem = true
+
+        for i, row in ipairs(self.window.armorRows) do
+            local cost = armorSlotUpgradeCost[achievementIndex][i]
+            local hasVaildItem = armorSlotHasVaildItem[achievementIndex][i]
+            if cost <= 0 then
+                row.cells[cellIndex]:SetText(atlasReady)
+            else
+                row.cells[cellIndex]:SetText(string_format('%d %s', cost, hasVaildItem and atlasReady or atlasDecline))
+            end
+
+            if not hasVaildItem then
+                isAllHasVaildItem = false
+            end
+        end
+
+        local hasWeaponCombinationHasAllVaildItem = false
+
+        for i, rows in ipairs(self.window.weaponRows) do
+            local isWeaponCombinationHasVaildItem = true
+
+            for j, row in ipairs(rows) do
+                local cost = weaponCombinationUpgradeCost[i][achievementIndex][j]
+                local hasVaildItem = weaponCombinationHasVaildItem[i][achievementIndex][j]
+                if cost <= 0 then
+                    row.cells[cellIndex]:SetText(atlasReady)
+                else
+                    row.cells[cellIndex]:SetText(string_format('%d %s', cost, hasVaildItem and atlasReady or atlasDecline))
+                end
+
+                if not hasVaildItem then
+                    isWeaponCombinationHasVaildItem = false
+                end
+            end
+
+            if isWeaponCombinationHasVaildItem then
+                hasWeaponCombinationHasAllVaildItem = true
+            end
+        end
+
+        if not hasWeaponCombinationHasAllVaildItem then
+            isAllHasVaildItem = false
+        end
+
+        local achievementCostData = achievementCost[achievementIndex]
+
+        if not achievementCostData.minCost then
+            if achievementCostData.totalCost <= 0 then
+                self.window.achievementCostRow.cells[cellIndex]:SetText(0)
+            else
+                self.window.achievementCostRow.cells[cellIndex]:SetText(string_format('%d %s', achievementCostData.totalCost, isAllHasVaildItem and atlasReady or atlasDecline))
+            end
+        elseif achievementCostData.minCost <= 0 then
+            ---@type CrestAchievementCellFrame
+            local cell = self.window.achievementCostRow.cells[cellIndex]
+            cell:SetText(0)
+
+            wipe(cell.tooltipLines)
+        elseif not achievementCostData.vaildMinCost then
+            ---@type CrestAchievementCellFrame
+            local cell = self.window.achievementCostRow.cells[cellIndex]
+            cell:SetText(string_format('%d %s', achievementCostData.minCost, atlasDecline))
+
+            wipe(cell.tooltipLines)
+            table_insert(cell.tooltipLines, { left = '最优方案', right = string_format('%d %s', achievementCostData.minCost, atlasDecline) })
+            for _, data in pairs(achievementCostData.minCostSlotUpgradeCount) do
+                table_insert(cell.tooltipLines, { left = data.slotName, right = string_format('升级 %d 次', data.times) })
+            end
+        elseif achievementCostData.minCost >= achievementCostData.vaildMinCost then
+            ---@type CrestAchievementCellFrame
+            local cell = self.window.achievementCostRow.cells[cellIndex]
+            cell:SetText(string_format('%d %s', achievementCostData.vaildMinCost, atlasReady))
+
+            wipe(cell.tooltipLines)
+            table_insert(cell.tooltipLines, { left = '可行方案', right = string_format('%d %s', achievementCostData.vaildMinCost, atlasReady) })
+            for _, data in pairs(achievementCostData.vaildMinCostSlotUpgradeCount) do
+                table_insert(cell.tooltipLines, { left = data.slotName, right = string_format('升级 %d 次', data.times) })
+            end
+        else
+            ---@type CrestAchievementCellFrame
+            local cell = self.window.achievementCostRow.cells[cellIndex]
+            cell:SetText(string_format('%d (%d)', achievementCostData.vaildMinCost, achievementCostData.minCost))
+
+            wipe(cell.tooltipLines)
+
+            table_insert(cell.tooltipLines, { left = '可行方案', right = string_format('%d %s', achievementCostData.vaildMinCost, atlasReady) })
+            for _, data in pairs(achievementCostData.vaildMinCostSlotUpgradeCount) do
+                table_insert(cell.tooltipLines, { left = data.slotName, right = string_format('升级 %d 次', data.times) })
+            end
+
+            table_insert(cell.tooltipLines, { left = '最优方案', right = string_format('%d %s', achievementCostData.minCost, atlasDecline) })
+            for _, data in pairs(achievementCostData.minCostSlotUpgradeCount) do
+                table_insert(cell.tooltipLines, { left = data.slotName, right = string_format('升级 %d 次', data.times) })
+            end
+        end
+
+        self.window.totalCostRow.cells[cellIndex]:SetText(achievementCostData.totalCost)
+
+        local info = C_CurrencyInfo_GetCurrencyInfo(achievementData.currencyID)
+        if not info then
+            self.window.hasAmountRow.cells[cellIndex]:SetText(0)
+        elseif info.useTotalEarnedForMaxQty and info.maxQuantity > 0 then
+            local maxAmount = info.maxQuantity - info.totalEarned + info.quantity
+            self.window.hasAmountRow.cells[cellIndex]:SetText(string_format('%d/%d', info.quantity, maxAmount))
+        else
+            self.window.hasAmountRow.cells[cellIndex]:SetText(info.quantity)
+        end
+    end
+
+    self.window:Show()
+end
+
+do
+    ---@param self CrestAchievementCellFrame
+    local function OnEnter(self)
+        local parent = self:GetParent()
+        local parentOnEnter = parent and parent:GetScript('OnEnter')
+        if parentOnEnter then
+            parentOnEnter(parent)
+        end
+
+        if #self.tooltipLines > 0 then
+            _G.GameTooltip:Hide()
+            _G.GameTooltip:SetOwner(self, 'ANCHOR_RIGHT')
+            _G.GameTooltip:ClearLines()
+
+            for _, line in ipairs(self.tooltipLines) do
+                _G.GameTooltip:AddDoubleLine(line.left, line.right, nil, nil, nil, 1, 1, 1)
+            end
+
+            _G.GameTooltip:Show()
+        end
+    end
+
+    ---@param self CrestAchievementCellFrame
+    local function OnLeave(self)
+        local parent = self:GetParent()
+        local parentOnLeave = parent and parent:GetScript('OnLeave')
+        if parentOnLeave then
+            parentOnLeave(parent)
+        end
+
+        _G.GameTooltip:Hide()
+    end
+
+    ---@param self CrestAchievementCellFrame
+    ---@param text string | number | nil
+    local function SetText(self, text)
+        ---@diagnostic disable-next-line: type-mismatch
+        self.text:SetText(text)
+    end
+
+    ---@param parent CrestAchievementRowFrame
+    ---@param index number
+    ---@return CrestAchievementCellFrame
+    function CA:CreateCellFrame(parent, index)
+        ---@class CrestAchievementCellFrame: Frame
+        local cellFrame = CreateFrame('Frame', nil, parent)
+        cellFrame:SetSize(80, 24)
+        cellFrame:SetPoint('LEFT', (index - 1) * 80, 0)
+
+        cellFrame:SetScript('OnEnter', OnEnter)
+        cellFrame:SetScript('OnLeave', OnLeave)
+
+        local text = cellFrame:CreateFontString(nil, 'ARTWORK')
+        text:SetPoint('CENTER')
+        text:SetJustifyH('CENTER')
+        text:SetWordWrap(false)
+        R:SetupFont(text)
+        cellFrame.text = text
+
+        cellFrame.SetText = SetText
+
+        ---@type { left: string, right: string }[]
+        cellFrame.tooltipLines = {}
+
+        return cellFrame
+    end
+end
+
+do
+    ---@param self CrestAchievementRowFrame
+    local function OnEnter(self)
+        self.highlight:Show()
+    end
+
+    ---@param self CrestAchievementRowFrame
+    local function OnLeave(self)
+        self.highlight:Hide()
+    end
+
+    ---@param parent CrestAchievementWindow
+    ---@param index number
+    ---@param columns number
+    ---@return CrestAchievementRowFrame
+    function CA:CreateRowFrame(parent, index, columns)
+        ---@class CrestAchievementRowFrame: Frame
+        local rowFrame = CreateFrame('Frame', nil, parent)
+        rowFrame:SetSize(columns * 80, 24)
+        rowFrame:SetPoint('TOP', 0, -(index + 1) * 24)
+
+        if index > 0 then
+            rowFrame:SetScript('OnEnter', OnEnter)
+            rowFrame:SetScript('OnLeave', OnLeave)
+        end
+
+        local highlight = rowFrame:CreateTexture(nil, 'OVERLAY')
+        highlight:SetAllPoints()
+        highlight:SetTexture(R.texture.default)
+        highlight:SetVertexColor(1, 1, 1, 0.03)
+        highlight:Hide()
+        rowFrame.highlight = highlight
+
+        local background = rowFrame:CreateTexture(nil, 'BACKGROUND')
+        background:SetAllPoints()
+        background:SetTexture(R.texture.default)
+        rowFrame.background = background
+
+        if index == 0 then -- Header
+            background:SetVertexColor(0, 0, 0, 0.3)
+        elseif index % 2 == 1 then
+            background:SetVertexColor(0, 0, 0, 0.1)
+        else
+            background:SetVertexColor(0, 0, 0, 0.02)
+        end
+
+        ---@type CrestAchievementCellFrame[]
+        rowFrame.cells = {}
+        for cellIndex = 1, columns do
+            rowFrame.cells[cellIndex] = self:CreateCellFrame(rowFrame, cellIndex)
+        end
+
+        return rowFrame
+    end
+end
+
+function CA:CreateWindow()
+    local columns = 2 + #achievementDatas
+    local rows = 1 -- header
+        + 1 -- status row
+        + 1 -- armor slots label
+        + #armorSlots -- armor slots
+        + 1 -- achievement cost
+        + 1 -- total cost
+        + 1 -- has amount
+    for _, weaponCombination in ipairs(weaponCombinations) do
+        rows = rows
+            + 1 -- weapon combination label
+            + #weaponCombination.slots -- weapon combination slots
+    end
+
+    ---@class CrestAchievementWindow: Frame & BackdropTemplate
+    local window = CreateFrame('Frame', 'RhythmBoxCrestAchievementWindow', _G.UIParent, 'BackdropTemplate')
+    window:SetFrameStrata('DIALOG')
+    window:SetPoint('CENTER')
+    window:SetSize(columns * 80, (rows + 1) * 24)
+    R:SetupBackdrop(window, 'Transparent')
+
+    window:Hide()
+    self.window = window
+
+    table_insert(_G.UISpecialFrames, 'RhythmBoxCrestAchievementWindow')
+
+    local closeButton = CreateFrame('Button', nil, window)
+    closeButton:SetPoint('TOPRIGHT', -7, -7)
+    closeButton:SetScript('OnClick', function()
+        window:Hide()
+    end)
+    R:SetupCloseButton(closeButton)
+
+    local titleText = window:CreateFontString(nil, 'ARTWORK')
+    titleText:SetPoint('TOP', window, 'TOP', 0, -5)
+    titleText:SetTextColor(1, 1, 1, 1)
+    titleText:SetJustifyH('CENTER')
+    R:SetupFont(titleText)
+    titleText:SetText("纹章成就")
+
+    local header = self:CreateRowFrame(window, 0, columns)
+    header.cells[1]:SetText("部位")
+    header.cells[2]:SetText("装等")
+    for achievementIndex, achievementData in ipairs(achievementDatas) do
+        ---@type number?, string?
+        local _, achievementName = GetAchievementInfo(achievementData.achievementID)
+        header.cells[achievementIndex + 2]:SetText(achievementName or achievementData.achievementID)
+    end
+
+    window.statusRow = self:CreateRowFrame(window, 1, columns)
+    window.statusRow.cells[1]:SetText("完成情况")
+
+    local basicSlotsLabel = self:CreateRowFrame(window, 2, columns)
+    basicSlotsLabel.cells[1]:SetText("护甲")
+
+    ---@type CrestAchievementRowFrame[]
+    window.armorRows = {}
+    for index, data in ipairs(armorSlots) do
+        local rowFrame = self:CreateRowFrame(window, index + 2, columns)
+        rowFrame.cells[1]:SetText(data.name)
+
+        window.armorRows[index] = rowFrame
+    end
+
+    ---@type CrestAchievementRowFrame[][]
+    window.weaponRows = {}
+
+    local rowIndex = 2 + #armorSlots + 1
+    for index, data in ipairs(weaponCombinations) do
+        window.weaponRows[index] = {}
+
+        local label = self:CreateRowFrame(window, rowIndex, columns)
+        label.cells[1]:SetText(data.label)
+        rowIndex = rowIndex + 1
+
+        for i, slotData in ipairs(data.slots) do
+            local slotRow = self:CreateRowFrame(window, rowIndex, columns)
+            slotRow.cells[1]:SetText(slotData.name)
+            rowIndex = rowIndex + 1
+
+            window.weaponRows[index][i] = slotRow
+        end
+    end
+
+    window.achievementCostRow = self:CreateRowFrame(window, rows - 3, columns)
+    window.achievementCostRow.cells[1]:SetText("成就用量")
+
+    window.totalCostRow = self:CreateRowFrame(window, rows - 2, columns)
+    window.totalCostRow.cells[1]:SetText("总计用量")
+
+    window.hasAmountRow = self:CreateRowFrame(window, rows - 1, columns)
+    window.hasAmountRow.cells[1]:SetText("持有数量")
+end
+
+function CA:OnInitialize()
+    self:CreateWindow()
+
+    self.buttonOpen = R:CreateTextButton(_G.CharacterFrame)
+    self.buttonOpen:SetPoint('BOTTOMLEFT', _G.CharacterFrame, 'TOPLEFT', 0, 2)
+    self.buttonOpen:SetSize(80, 22)
+    self.buttonOpen:SetText("纹章成就")
+    self.buttonOpen:SetScript('OnClick', function()
+        self:UpdateFrame()
+    end)
+end

@@ -7,6 +7,7 @@
 	<Script file='Misc.lua'/>
 
 	<Script file='AutoLogging.lua'/>
+	<Script file='CrestAchievement.lua'/>
 	<Script file='QuickMenuButton.lua'/>
 	<Script file='Screenshot.lua'/>
 </Ui>
