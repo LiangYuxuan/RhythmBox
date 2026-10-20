@@ -1646,8 +1646,6 @@ function RPO:BuildQuickWindow()
     R:SetupBackdrop(window, 'Transparent')
     self.quickWindow = window
 
-    window:Hide()
-
     local buttonOpenOrder = R:CreateTextButton(window)
     buttonOpenOrder:SetPoint('TOP', window, 'TOP', 0, -10)
     buttonOpenOrder:SetSize(80, 22)
@@ -1697,6 +1695,7 @@ function RPO:OnEnable()
     self.dataProvider:RegisterCallback(self.dataProvider.Event.OnValueChanged, OnValueChanged, self)
     self.dataProvider:RegisterCallback(self.dataProvider.Event.OnSizeChanged, OnSizeChanged, self)
 
+    self.window:Hide()
     self:CheckZone()
 end
 

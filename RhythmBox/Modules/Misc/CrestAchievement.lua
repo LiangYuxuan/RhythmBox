@@ -1431,8 +1431,6 @@ function CA:CreateWindow()
     window:SetPoint('CENTER')
     window:SetSize(columns * 80, (rows + 1) * 24)
     R:SetupBackdrop(window, 'Transparent')
-
-    window:Hide()
     self.window = window
 
     table_insert(_G.UISpecialFrames, 'RhythmBoxCrestAchievementWindow')
