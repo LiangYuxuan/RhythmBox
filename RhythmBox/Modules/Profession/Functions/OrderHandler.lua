@@ -7,6 +7,7 @@ local RP = R:GetModule('Profession')
 local ipairs, pairs = ipairs, pairs
 local math_huge = math.huge
 local math_max = math.max
+local math_round = math.round
 local string_format = string.format
 local table_insert = table.insert
 
@@ -30,7 +31,6 @@ local C_TradeSkillUI_GetRecipeItemQualityInfo = C_TradeSkillUI.GetRecipeItemQual
 local GetMoney = GetMoney
 
 local CreateAtlasMarkup = CreateAtlasMarkup
-local Round = Round
 local SecondsToTime = SecondsToTime
 
 local Constants_ProfessionConsts_PUBLIC_CRAFTING_ORDER_STALE_THRESHOLD = Constants.ProfessionConsts.PUBLIC_CRAFTING_ORDER_STALE_THRESHOLD
@@ -464,8 +464,10 @@ do
 
             local atlasInfo = C_Texture_GetAtlasInfo(info.iconChat)
             local scale = 0.4
-            local width = Round(atlasInfo.width * scale)
-            local height = Round(atlasInfo.height * scale)
+            ---@diagnostic disable-next-line: missing-parameter
+            local width = math_round(atlasInfo.width * scale)
+            ---@diagnostic disable-next-line: missing-parameter
+            local height = math_round(atlasInfo.height * scale)
 
             local atlas = CreateAtlasMarkup(info.iconChat, width, height)
             return string_format(PROFESSIONS_ORDER_HAS_MINIMUM_QUALITY_FMT, atlas)
