@@ -8,7 +8,7 @@ RI:Register(Module, "NaowhUI", { 'NaowhUI', 'EllesmereUI' })
 
 -- Lua functions
 local _G = _G
-local ipairs = ipairs
+local ipairs, pairs = ipairs, pairs
 local string_match = string.match
 
 -- WoW API / Variables
