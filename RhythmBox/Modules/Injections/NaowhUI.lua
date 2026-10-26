@@ -52,8 +52,8 @@ local Enum_EditModePresetLayoutsMeta_NumValues = Enum.EditModePresetLayoutsMeta.
 ---@field barVisibility string
 ---@field buttonHeight number
 ---@field buttonWidth number
----@field combatHideEnabled number
----@field combatShowEnabled number
+---@field combatHideEnabled boolean
+---@field combatShowEnabled boolean
 ---@field growDirection string
 ---@field mouseoverAlpha number
 ---@field mouseoverEnabled boolean
