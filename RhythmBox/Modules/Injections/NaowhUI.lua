@@ -4,7 +4,7 @@ local R = Engine.Core
 local RI = R:GetModule('Injections')
 ---@class RhythmBoxInjectionsModule.NaowhUI: AceAddon-3.0 & AceEvent-3.0 & AceHook-3.0
 local Module = RI:NewModule('NaowhUI', 'AceEvent-3.0', 'AceHook-3.0')
-RI:Register(Module, "NaowhUI", { 'NaowhUI', 'EllesmereUI' })
+RI:Register(Module, "NaowhUI", { 'NaowhUI', 'EllesmereUI' }, { 'NorthernSkyRaidTools' })
 
 -- Lua functions
 local _G = _G
@@ -17,6 +17,11 @@ local C_EditMode_SetActiveLayout = C_EditMode.SetActiveLayout
 
 ---@type number
 local Enum_EditModePresetLayoutsMeta_NumValues = Enum.EditModePresetLayoutsMeta.NumValues
+
+---@class NorthernSkyRaidToolsAPI
+---@field ProfileExists fun(self: self, name: string): boolean
+---@field ImportProfileString fun(self: self, importString: string, name: string?, allowSharedData: boolean?, ignoreSharedData: boolean?)
+---@field OverrideProfile fun(self: self, importString: string, name: string?, options: { allowSharedData: boolean?, ignoreSharedData: boolean?, preserveNotes: boolean? }?)
 
 ---@class EllesmereUI
 ---@field SaveBarPosition fun(key: string, point: string, relPoint: string, x: number, y: number)
@@ -510,6 +515,27 @@ function Module:TweakEUIProfile()
     EUI.RefreshAllAddons()
 end
 
+---@param _ NorthernSkyRaidToolsAPI
+---@param importString string
+---@param name string?
+---@param allowSharedData boolean?
+---@param ignoreSharedData boolean?
+---@return string?, string?
+---@diagnostic disable-next-line: unused-function
+function Module:ImportProfileString(_, importString, name, allowSharedData, ignoreSharedData)
+    if name and self.NSAPI:ProfileExists(name) then
+        ---@type string?, string?
+        local returnName, returnError = self.NSAPI:OverrideProfile(importString, name, { allowSharedData = allowSharedData, ignoreSharedData = ignoreSharedData })
+
+        return returnName, returnError
+    end
+
+    ---@type string?, string?
+    local returnName, returnError = self.hooks[self.NSAPI].ImportProfileString(self.NSAPI, importString, name, allowSharedData, ignoreSharedData)
+
+    return returnName, returnError
+end
+
 function Module:OnDisable()
     self:UnhookAll()
     self:UnregisterAllEvents()
@@ -518,6 +544,10 @@ end
 function Module:OnEnable()
     self:RawHook(self.SE, 'Blizzard_CooldownViewer')
     self:SecureHook(self.EUI, 'ApplyProfileData', 'TweakEUIProfile')
+
+    if self.NSAPI then
+        self:RawHook(self.NSAPI, 'ImportProfileString')
+    end
 
     self:RegisterEvent('EDIT_MODE_LAYOUTS_UPDATED', 'UpdateEditMode')
     self:RegisterEvent('PLAYER_SPECIALIZATION_CHANGED', 'UpdateEditMode')
@@ -533,4 +563,8 @@ function Module:OnAddonLoad()
     ---@type EllesmereUI
     ---@diagnostic disable-next-line: undefined-field
     self.EUI = _G.EllesmereUI
+
+    ---@type NorthernSkyRaidToolsAPI!
+    ---@diagnostic disable-next-line: undefined-field
+    self.NSAPI = _G.NSAPI
 end
