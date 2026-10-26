@@ -6,6 +6,7 @@ local QM = R:NewModule('QuickMacro', 'AceEvent-3.0')
 -- Lua functions
 local _G = _G
 local date, format, gsub, ipairs, pairs, random, select = date, format, gsub, ipairs, pairs, random, select
+local table_contains = table.contains
 local table_insert = table.insert
 local table_sort = table.sort
 local table_wipe = table.wipe
@@ -49,7 +50,6 @@ local Item = Item
 local MenuUtil_CreateContextMenu = MenuUtil.CreateContextMenu
 local RegisterStateDriver = RegisterStateDriver
 local SecureHandlerSetFrameRef = SecureHandlerSetFrameRef
-local tContains = tContains
 
 ---@class QuickMacroItemDisplay
 ---@correlated ctrl, ctrlIsToy
@@ -1119,8 +1119,8 @@ QM.MacroButtons.Consumable = {
 
                 for _, data in ipairs(itemLists.source) do
                     if (
-                        (not data.equippedItemInvTypes or tContains(data.equippedItemInvTypes, itemEquipLoc)) and
-                        (not data.equippedItemSubclass or tContains(data.equippedItemSubclass, subClassID))
+                        (not data.equippedItemInvTypes or table_contains(data.equippedItemInvTypes, itemEquipLoc)) and
+                        (not data.equippedItemSubclass or table_contains(data.equippedItemSubclass, subClassID))
                     ) then
                         table_insert(itemList.none, data.itemID)
                     end
@@ -1242,8 +1242,8 @@ QM.MacroButtons.Consumable = {
 
                 for _, data in ipairs(itemLists.source) do
                     if (
-                        (not data.equippedItemInvTypes or tContains(data.equippedItemInvTypes, itemEquipLoc)) and
-                        (not data.equippedItemSubclass or tContains(data.equippedItemSubclass, subClassID))
+                        (not data.equippedItemInvTypes or table_contains(data.equippedItemInvTypes, itemEquipLoc)) and
+                        (not data.equippedItemSubclass or table_contains(data.equippedItemSubclass, subClassID))
                     ) then
                         table_insert(itemList.none, data.itemID)
                     end

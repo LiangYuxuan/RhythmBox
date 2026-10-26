@@ -16,6 +16,7 @@ local math_floor = math.floor
 local math_max = math.max
 local math_min = math.min
 local string_format = string.format
+local table_indexof = table.indexof
 local table_insert = table.insert
 
 -- WoW API / Variables
@@ -64,7 +65,6 @@ local GameEvent_UnregisterInternalEvent = GameEvent.UnregisterInternalEvent
 local HandleModifiedItemClick = HandleModifiedItemClick --[[@as fun(link: string?, itemLocation: ItemLocation?): boolean]]
 local Item = Item
 local ScrollUtil_InitScrollBoxListWithScrollBar = ScrollUtil.InitScrollBoxListWithScrollBar
-local tIndexOf = tIndexOf
 
 local Enum_CraftingOrderResult_Ok = Enum.CraftingOrderResult.Ok
 local Enum_CraftingOrderType_Npc = Enum.CraftingOrderType.Npc
@@ -1065,7 +1065,7 @@ do
         local replace = data.missingModifiedReagentInfosReplaces[modifiedIndex]
         if not replace then return end
 
-        local currentReagentIndex = tIndexOf(replace, self.reagentInfo)
+        local currentReagentIndex = table_indexof(replace, self.reagentInfo)
         if not currentReagentIndex then return end
 
         local nextIndex = (currentReagentIndex + 1) % #replace

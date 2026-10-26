@@ -17,6 +17,7 @@ local math_min = math.min
 local string_format = string.format
 local string_gmatch = string.gmatch
 local string_match = string.match
+local table_indexof = table.indexof
 local table_insert = table.insert
 local table_sort = table.sort
 
@@ -31,8 +32,6 @@ local C_ItemUpgrade_GetHighWatermarkSlotForItem = C_ItemUpgrade.GetHighWatermark
 local CreateFrame = CreateFrame
 local GetAchievementInfo = GetAchievementInfo
 local GetInventoryItemLink = GetInventoryItemLink
-
-local tIndexOf = tIndexOf
 
 local Enum_ItemRedundancySlot_MainhandWeapon = Enum.ItemRedundancySlot.MainhandWeapon
 local Enum_ItemRedundancySlot_Offhand = Enum.ItemRedundancySlot.Offhand
@@ -680,7 +679,7 @@ function CA:GetItemUpgradeCost(achievementData, slotItemLevel, accountHighWaterm
     ---@type number[]
     local rewardList = {}
 
-    local index = tIndexOf(achievementData.upgradePath, slotItemLevel) or 1
+    local index = table_indexof(achievementData.upgradePath, slotItemLevel) or 1
     for i = index + 1, #achievementData.upgradePath do
         local itemLevel = achievementData.upgradePath[i]
         local itemLevelCost = achievementData.upgradePathCost[itemLevel] * (itemLevel <= accountHighWatermark and multiplier or 1)

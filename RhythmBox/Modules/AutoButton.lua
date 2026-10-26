@@ -6,6 +6,7 @@ local AB = R:NewModule('AutoButton', 'AceEvent-3.0')
 -- Lua functions
 local _G = _G
 local gsub, ipairs, pairs, select = gsub, ipairs, pairs, select
+local table_contains = table.contains
 local table_insert = table.insert
 local table_sort = table.sort
 local table_wipe = table.wipe
@@ -37,8 +38,6 @@ local GetQuestLogSpecialItemCooldown = GetQuestLogSpecialItemCooldown
 local GetQuestLogSpecialItemInfo = GetQuestLogSpecialItemInfo
 local InCombatLockdown = InCombatLockdown
 local UnitCanAttack = UnitCanAttack
-
-local tContains = tContains
 
 ---@class AutoButton: Button & SecureActionButtonTemplate & BackdropTemplate
 ---@field icon Texture
@@ -256,13 +255,13 @@ do
         end
 
         if condition.instanceType then
-            if tContains(condition.instanceType, R.playerInstanceType) then
+            if table_contains(condition.instanceType, R.playerInstanceType) then
                 return true
             end
         end
 
         if condition.difficultyID then
-            if tContains(condition.difficultyID, R.playerInstanceDifficultyID) then
+            if table_contains(condition.difficultyID, R.playerInstanceDifficultyID) then
                 return true
             end
         end
