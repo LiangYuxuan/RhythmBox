@@ -4,7 +4,7 @@ local R = Engine.Core
 local RI = R:GetModule('Injections')
 ---@class RhythmBoxInjectionsModule.NaowhUI: AceAddon-3.0 & AceEvent-3.0 & AceHook-3.0
 local Module = RI:NewModule('NaowhUI', 'AceEvent-3.0', 'AceHook-3.0')
-RI:Register(Module, "NaowhUI", { 'NaowhUI', 'EllesmereUI' }, { 'NorthernSkyRaidTools' })
+RI:Register(Module, "NaowhUI", { 'NaowhUI', 'EllesmereUI' }, { 'ExBoss', 'NorthernSkyRaidTools' })
 
 -- Lua functions
 local _G = _G
@@ -17,6 +17,21 @@ local C_EditMode_SetActiveLayout = C_EditMode.SetActiveLayout
 
 ---@type number
 local Enum_EditModePresetLayoutsMeta_NumValues = Enum.EditModePresetLayoutsMeta.NumValues
+
+---@class ExBoss.AppearanceProfiles
+---@field ActivateProfile fun(self: self, profileID: string, automatic: boolean?): boolean, string?
+---@field IsProfileNameAvailable fun(self: self, name: string, exceptID: string?): boolean
+---@field GetProfileItems fun(self: self): { [1]: string, [2]: string }[]
+---@field DeleteProfile fun(self: self, profileID: string): boolean, string?
+
+---@class ExBoss.BossConfig
+---@field DeleteAuthorConfiguration fun(self: self, category: string, name: string): boolean, string?
+---@field GetAuthorConfigurationItems fun(self: self, category: string): { category: string, id: string, name: string, author: string, imported: boolean }[]
+---@field IsAuthorConfigurationNameAvailable fun(self: self, category: string, name: string): boolean
+
+---@class ExBoss
+---@field AppearanceProfiles ExBoss.AppearanceProfiles
+---@field BossConfig ExBoss.BossConfig
 
 ---@class NorthernSkyRaidToolsAPI
 ---@field ProfileExists fun(self: self, name: string): boolean
@@ -536,6 +551,43 @@ function Module:ImportProfileString(_, importString, name, allowSharedData, igno
     return returnName, returnError
 end
 
+---@param ... any
+---@return nil
+---@diagnostic disable-next-line: unused-function
+function Module:EXBoss(...)
+    ---@type ExBoss
+    local ExBoss = self.ExBoss
+
+    if not ExBoss.AppearanceProfiles:IsProfileNameAvailable('Naowh - 默认外观') then
+        local profiles = ExBoss.AppearanceProfiles:GetProfileItems()
+        for _, profile in ipairs(profiles) do
+            local profileName, profileID = profile[1], profile[2]
+            if profileName == 'Naowh - 默认外观' then
+                ExBoss.AppearanceProfiles:ActivateProfile('default')
+                ExBoss.AppearanceProfiles:DeleteProfile(profileID)
+                break
+            end
+        end
+    end
+
+    for _, category in ipairs({ 'mplus', 'raid' }) do
+        if not ExBoss.BossConfig:IsAuthorConfigurationNameAvailable(category, 'Naowh') then
+            local profiles = ExBoss.BossConfig:GetAuthorConfigurationItems(category)
+            for _, profile in ipairs(profiles) do
+                if profile.name == 'Naowh' then
+                    ExBoss.BossConfig:DeleteAuthorConfiguration(category, profile.id)
+                    break
+                end
+            end
+        end
+    end
+
+    ---@type nil
+    local result = self.hooks[self.SE].EXBoss(...)
+
+    return result
+end
+
 function Module:OnDisable()
     self:UnhookAll()
     self:UnregisterAllEvents()
@@ -547,6 +599,10 @@ function Module:OnEnable()
 
     if self.NSAPI then
         self:RawHook(self.NSAPI, 'ImportProfileString')
+    end
+
+    if self.ExBoss then
+        self:RawHook(self.SE, 'EXBoss')
     end
 
     self:RegisterEvent('EDIT_MODE_LAYOUTS_UPDATED', 'UpdateEditMode')
@@ -567,4 +623,8 @@ function Module:OnAddonLoad()
     ---@type NorthernSkyRaidToolsAPI!
     ---@diagnostic disable-next-line: undefined-field
     self.NSAPI = _G.NSAPI
+
+    ---@type ExBoss!
+    ---@diagnostic disable-next-line: undefined-field
+    self.ExBoss = _G.ExBoss
 end
