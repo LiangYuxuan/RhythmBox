@@ -445,8 +445,6 @@ function Module:TweakEUIProfile()
     Profile.addons.EllesmereUIChat.chat.timestampFormat = '%H:%M:%S '
     Profile.addons.EllesmereUIDamageMeters.dm.spellHistory.iconEnabled = false
 
-    -- TODO: 锁定背包&银行 背包大小
-
     for _, data in ipairs(unlockModeDatas) do
         DB.unlockAnchors[data.key].side = data.side
         DB.unlockAnchors[data.key].target = 'SCREEN_' .. data.target
