@@ -150,8 +150,10 @@ local Enum_EditModeSystem_EncounterBar = Enum.EditModeSystem.EncounterBar
 ---@field fctFont string
 ---@field fctFontPath string
 ---@field fctFontPathFor string
+---@field flyoutItemLevels boolean
 ---@field merchantBulkBuy boolean
 ---@field shifterTopBarUnlock boolean
+---@field showAdjustedStats boolean
 ---@field clickCast EllesmereUIDB.ClickCast
 ---@field fonts EllesmereUIDB.Font
 ---@field profiles table<string, EllesmereUIDB.Profile>
@@ -449,8 +451,10 @@ function Module:TweakEUIProfile()
 
     local Profile = DB.profiles[activeProfile]
 
+    DB.flyoutItemLevels = true
     DB.merchantBulkBuy = true
     DB.shifterTopBarUnlock = true
+    DB.showAdjustedStats = true
     DB.fctFont = 'smf:GothamNarrowUltra'
     DB.fctFontPath = [[Interface\Addons\RhythmBox\Media\Font\GothamNarrowUltra_Round.ttf]]
     DB.fctFontPathFor = 'smf:GothamNarrowUltra'
