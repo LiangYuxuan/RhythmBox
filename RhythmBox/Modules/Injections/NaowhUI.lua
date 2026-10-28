@@ -13,10 +13,13 @@ local string_match = string.match
 
 -- WoW API / Variables
 local C_EditMode_GetLayouts = C_EditMode.GetLayouts
+local C_EditMode_OnLayoutAdded = C_EditMode.OnLayoutAdded
+local C_EditMode_SaveLayouts = C_EditMode.SaveLayouts
 local C_EditMode_SetActiveLayout = C_EditMode.SetActiveLayout
 
 ---@type number
 local Enum_EditModePresetLayoutsMeta_NumValues = Enum.EditModePresetLayoutsMeta.NumValues
+local Enum_EditModeSystem_EncounterBar = Enum.EditModeSystem.EncounterBar
 
 ---@class ExBoss.AppearanceProfiles
 ---@field ActivateProfile fun(self: self, profileID: string, automatic: boolean?): boolean, string?
@@ -401,6 +404,37 @@ function Module:Blizzard_CooldownViewer(...)
     return result
 end
 
+---@param _ string
+---@param import boolean
+---@diagnostic disable-next-line: unused-function
+function Module:Blizzard_EditMode(_, import)
+    if not import then return end
+
+    local layoutInfo = C_EditMode_GetLayouts()
+    for _, layout in ipairs(layoutInfo.layouts) do
+        if layout.layoutName == 'Naowh' then
+            for _, system in ipairs(layout.systems) do
+                if system.system == Enum_EditModeSystem_EncounterBar then
+                    system.isInDefaultPosition = false
+                    system.anchorInfo.relativeTo = 'UIParent'
+                    system.anchorInfo.relativePoint = 'TOP'
+                    system.anchorInfo.point = 'TOP'
+                    system.anchorInfo.offsetX = 0
+                    system.anchorInfo.offsetY = -200
+                    system.anchorInfo2 = nil
+
+                    break
+                end
+            end
+
+            break
+        end
+    end
+
+    C_EditMode_SaveLayouts(layoutInfo)
+    C_EditMode_OnLayoutAdded(Enum_EditModePresetLayoutsMeta_NumValues + #layoutInfo.layouts, true, true)
+end
+
 ---@diagnostic disable-next-line: unused-function
 function Module:TweakEUIProfile()
     ---@type EllesmereUI
@@ -595,6 +629,7 @@ end
 
 function Module:OnEnable()
     self:RawHook(self.SE, 'Blizzard_CooldownViewer')
+    self:SecureHook(self.SE, 'Blizzard_EditMode')
     self:SecureHook(self.EUI, 'ApplyProfileData', 'TweakEUIProfile')
 
     if self.NSAPI then
