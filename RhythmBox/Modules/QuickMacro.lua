@@ -1884,7 +1884,7 @@ function QM:CreateButton(buttonName, parent)
     R:SetupIcon(button.icon, button)
 
     button.qualityOverlay = button:CreateTexture(nil, 'OVERLAY')
-    button.qualityOverlay:SetPoint("TOPLEFT", -3, 2)
+    button.qualityOverlay:SetPoint('TOPLEFT', -3, 2)
 
     button.count = button:CreateFontString(nil, 'OVERLAY')
     button.count:SetTextColor(1, 1, 1, 1)

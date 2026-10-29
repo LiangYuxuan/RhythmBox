@@ -17,7 +17,7 @@ local function ForceRegister(mediaType, key, data, langMask)
         dataTable[key] = data
 
         ---@diagnostic disable-next-line: undefined-field
-        LSM.callbacks:Fire("LibSharedMedia_Registered", mediaType, key)
+        LSM.callbacks:Fire('LibSharedMedia_Registered', mediaType, key)
     end
 end
 
@@ -32,8 +32,8 @@ end
 -- -----
 --   FONT
 -- -----
-ForceRegister(MediaType_FONT, "GothamNarrowUltra", [[Interface\Addons\RhythmBox\Media\Font\GothamNarrowUltra_Round.ttf]], koKR + ruRU + zhCN + zhTW + western)
-ForceRegister(MediaType_FONT, "Naowh", [[Interface\Addons\RhythmBox\Media\Font\Rhythm.ttf]], koKR + ruRU + zhCN + zhTW + western)
+ForceRegister(MediaType_FONT, 'GothamNarrowUltra', [[Interface\Addons\RhythmBox\Media\Font\GothamNarrowUltra_Round.ttf]], koKR + ruRU + zhCN + zhTW + western)
+ForceRegister(MediaType_FONT, 'Naowh', [[Interface\Addons\RhythmBox\Media\Font\Rhythm.ttf]], koKR + ruRU + zhCN + zhTW + western)
 
 -- -----
 --   SOUND
