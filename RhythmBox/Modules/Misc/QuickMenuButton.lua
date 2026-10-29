@@ -1,7 +1,7 @@
 local _, Engine = ...
 local R = Engine.Core
----@class RhythmBoxQuickMenuButton: AceAddon-3.0 & AceEvent-3.0
-local QMB = R:NewModule('QuickMenuButton', 'AceEvent-3.0')
+---@class RhythmBoxQuickMenuButton: AceAddon-3.0
+local QMB = R:NewModule('QuickMenuButton')
 local LRI = Engine.Libs.LRI
 
 ---@type RhythmBoxMiscModule

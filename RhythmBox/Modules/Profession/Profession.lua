@@ -1,7 +1,7 @@
 local _, Engine = ...
 local R = Engine.Core
----@class RhythmBoxProfessionModule: AceAddon-3.0 & AceEvent-3.0
-local RP = R:NewModule('Profession', 'AceEvent-3.0')
+---@class RhythmBoxProfessionModule: AceAddon-3.0
+local RP = R:NewModule('Profession')
 
 -- Lua functions
 local _G = _G
