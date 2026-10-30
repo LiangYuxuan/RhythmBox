@@ -689,6 +689,7 @@ QM.MacroButtons.RandomHearthstone = {
         265100, -- Corewarden's Hearthstone
         281136, -- Hiveborne Hearthstone
         281615, -- Shadeweaver's Hearthstone
+        288912, -- Wood-Cursed Hearthstone
         ---AUTO_GENERATED TAILING QuickMacroHearthstone
     },
 }
