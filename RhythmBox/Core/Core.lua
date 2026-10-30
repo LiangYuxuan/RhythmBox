@@ -39,6 +39,7 @@ _G.BINDING_HEADER_RHYTHM = R.Title
 
 function R:OnProfileUpdated()
     self.db = self.data.profile
+    self.global = self.data.global
 
     self:OptionsOnProfileUpdated()
 end
@@ -49,14 +50,16 @@ function R:OnEnable()
 end
 
 function R:OnInitialize()
-    ---@type { profile: RhythmBoxProfile } & AceDBObject-3.0
-    self.data = AceDB:New('RhythmBoxDB', { profile = Engine.Profile }, true)
+    ---@type { profile: RhythmBoxProfile, global: RhythmBoxGlobalProfile } & AceDBObject-3.0
+    self.data = AceDB:New('RhythmBoxDB', { profile = Engine.Profile, global = Engine.GlobalProfile }, true)
     self.data.RegisterCallback(self, 'OnProfileChanged', 'OnProfileUpdated')
     self.data.RegisterCallback(self, 'OnProfileCopied', 'OnProfileUpdated')
     self.data.RegisterCallback(self, 'OnProfileReset', 'OnProfileUpdated')
 
     ---@type RhythmBoxProfile
     self.db = self.data.profile
+    ---@type RhythmBoxGlobalProfile
+    self.global = self.data.global
 
     self:APIOnInitialize()
 end

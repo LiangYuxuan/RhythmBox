@@ -3,6 +3,8 @@ local _, Engine = ...
 local R = Engine.Core
 
 -- Lua functions
+local math_round = math.round
+local string_format = string.format
 
 -- WoW API / Variables
 local C_ClassColor_GetClassColor = C_ClassColor.GetClassColor
@@ -71,4 +73,22 @@ function R:ClassColor(class)
         b = classColor.b,
     }
     return color
+end
+
+---@param text string
+---@param color RhythmBoxColor
+---@return string
+function R:WrapTextInColorCode(text, color)
+    return string_format(
+        '|c%.2X%.2X%.2X%.2X%s|r',
+        ---@diagnostic disable-next-line: missing-parameter
+        math_round((color.a or 1) * 255),
+        ---@diagnostic disable-next-line: missing-parameter
+        math_round(color.r * 255),
+        ---@diagnostic disable-next-line: missing-parameter
+        math_round(color.g * 255),
+        ---@diagnostic disable-next-line: missing-parameter
+        math_round(color.b * 255),
+        text
+    )
 end

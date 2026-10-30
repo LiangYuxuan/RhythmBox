@@ -30,6 +30,10 @@ Libs.LOR = LibStub('LibOpenRaid-1.0')
 local P = {}
 Engine.Profile = P
 
+---@class RhythmBoxGlobalProfile
+local G = {}
+Engine.GlobalProfile = G
+
 ---@class RhythmBoxDatabase
 local Database = {}
 Engine.Database = Database

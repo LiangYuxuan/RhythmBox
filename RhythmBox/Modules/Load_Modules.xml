@@ -5,6 +5,7 @@
                         https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_SharedXML/UI.xsd"
 >
 	<Include file="Injections\Load_Injections.xml"/>
+	<Include file="ItemRouter\Load_ItemRouter.xml"/>
 	<Include file="Profession\Load_Profession.xml"/>
 
 	<Include file="Misc\Load_Misc.xml"/>
