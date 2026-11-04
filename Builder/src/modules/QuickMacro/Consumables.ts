@@ -192,11 +192,7 @@ const task: Task = {
         spellEffect.getAllIDs().forEach((id) => {
             const spellID = spellEffect.wdc.getRowRelationship(id);
             if (spellID !== undefined) {
-                if (!spellID2SpellEffectIDs.has(spellID)) {
-                    spellID2SpellEffectIDs.set(spellID, []);
-                }
-
-                spellID2SpellEffectIDs.get(spellID)?.push(id);
+                spellID2SpellEffectIDs.getOrInsert(spellID, []).push(id);
             }
         });
 
@@ -224,11 +220,7 @@ const task: Task = {
             const spellID = row?.SpellID as number;
             const labelID = row?.LabelID as number;
 
-            if (!spellID2Labels.has(spellID)) {
-                spellID2Labels.set(spellID, []);
-            }
-
-            spellID2Labels.get(spellID)?.push(labelID);
+            spellID2Labels.getOrInsert(spellID, []).push(labelID);
         });
 
         const skillLineSpellIDs = getSkillLineSpellIDsForExpansion(

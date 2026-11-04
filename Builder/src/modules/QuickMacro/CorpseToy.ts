@@ -41,11 +41,7 @@ const task: Task = {
         spellEffect.getAllIDs().forEach((id) => {
             const spellID = spellEffect.wdc.getRowRelationship(id);
             if (spellID !== undefined) {
-                if (!spellID2SpellEffectIDs.has(spellID)) {
-                    spellID2SpellEffectIDs.set(spellID, []);
-                }
-
-                spellID2SpellEffectIDs.get(spellID)?.push(id);
+                spellID2SpellEffectIDs.getOrInsert(spellID, []).push(id);
             }
         });
 
