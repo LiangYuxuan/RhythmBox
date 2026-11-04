@@ -52,9 +52,9 @@ const getClient = async () => {
     clientCache = new CASCClient(region, latestVersion.product, latestVersion.version);
     await clientCache.init();
 
-    console.info(new Date().toISOString(), '[INFO]: Loading remote TACT keys');
+    console.info(Temporal.Now.instant().toString(), '[INFO]: Loading remote TACT keys');
     await clientCache.loadRemoteTACTKeys();
-    console.info(new Date().toISOString(), '[INFO]: Loaded remote TACT keys');
+    console.info(Temporal.Now.instant().toString(), '[INFO]: Loaded remote TACT keys');
 
     return clientCache;
 };
@@ -70,7 +70,7 @@ const getDataFileStatus = async (
         return dbFile;
     }
 
-    console.info(new Date().toISOString(), `[INFO]: Downloading fileDataID ${fileDataID.toString()}`);
+    console.info(Temporal.Now.instant().toString(), `[INFO]: Downloading fileDataID ${fileDataID.toString()}`);
 
     const client = await getClient();
     const cKeys = client.getContentKeysByFileDataID(fileDataID);
@@ -87,7 +87,7 @@ const getDataFileStatus = async (
     const oldBuildFile = dbFiles?.get(fileDataID);
     if (oldBuildFile?.cKey === cKey.cKey) {
         if (oldBuildFile.type === 'full' && data.type === 'full') {
-            console.info(new Date().toISOString(), `[INFO]: Full file ${fileDataID.toString()} is up-to-date`);
+            console.info(Temporal.Now.instant().toString(), `[INFO]: Full file ${fileDataID.toString()} is up-to-date`);
             status = 'up-to-date';
         } else if (
             oldBuildFile.type === 'partial'
@@ -98,13 +98,13 @@ const getDataFileStatus = async (
                 && block.size === data.blocks[index].size
             ))
         ) {
-            console.info(new Date().toISOString(), `[INFO]: Partial file ${fileDataID.toString()} is up-to-date`);
+            console.info(Temporal.Now.instant().toString(), `[INFO]: Partial file ${fileDataID.toString()} is up-to-date`);
             status = 'up-to-date';
         } else {
-            console.info(new Date().toISOString(), `[INFO]: File ${fileDataID.toString()} is decrypted more or less than before`);
+            console.info(Temporal.Now.instant().toString(), `[INFO]: File ${fileDataID.toString()} is decrypted more or less than before`);
         }
     } else {
-        console.info(new Date().toISOString(), `[INFO]: File ${fileDataID.toString()} is new or changed`);
+        console.info(Temporal.Now.instant().toString(), `[INFO]: File ${fileDataID.toString()} is new or changed`);
     }
 
     const reader = new WDCReader(data.buffer, data.blocks);
@@ -133,14 +133,14 @@ export const executeTasks = async (tasks: Task[], isForce: boolean) => {
         : tasks.filter((task) => {
             const lastVersion = buildInfo?.tasks.get(task.key);
             if (lastVersion === undefined) {
-                console.info(new Date().toISOString(), `[INFO]: Task ${task.key} scheduled for execution (no previous version to version ${task.version.toString()})`);
+                console.info(Temporal.Now.instant().toString(), `[INFO]: Task ${task.key} scheduled for execution (no previous version to version ${task.version.toString()})`);
                 return true;
             }
             if (lastVersion < task.version) {
-                console.info(new Date().toISOString(), `[INFO]: Task ${task.key} scheduled for execution (previous version ${lastVersion.toString()} to new version ${task.version.toString()})`);
+                console.info(Temporal.Now.instant().toString(), `[INFO]: Task ${task.key} scheduled for execution (previous version ${lastVersion.toString()} to new version ${task.version.toString()})`);
                 return true;
             }
-            console.info(new Date().toISOString(), `[INFO]: Task ${task.key} soft scheduled (version ${lastVersion.toString()})`);
+            console.info(Temporal.Now.instant().toString(), `[INFO]: Task ${task.key} soft scheduled (version ${lastVersion.toString()})`);
             return false;
         });
 
@@ -149,13 +149,13 @@ export const executeTasks = async (tasks: Task[], isForce: boolean) => {
         : forceTasks;
 
     if (isForce) {
-        console.info(new Date().toISOString(), `[INFO]: Force run all tasks on game version ${latestVersion.version.VersionsName}`);
+        console.info(Temporal.Now.instant().toString(), `[INFO]: Force run all tasks on game version ${latestVersion.version.VersionsName}`);
     } else if (!buildInfo) {
-        console.info(new Date().toISOString(), `[INFO]: No build info found, run all tasks on game version ${latestVersion.version.VersionsName}`);
+        console.info(Temporal.Now.instant().toString(), `[INFO]: No build info found, run all tasks on game version ${latestVersion.version.VersionsName}`);
     } else if (buildInfo.gameVersion !== latestVersion.version.VersionsName) {
-        console.info(new Date().toISOString(), `[INFO]: New game version ${latestVersion.version.VersionsName} detected`);
+        console.info(Temporal.Now.instant().toString(), `[INFO]: New game version ${latestVersion.version.VersionsName} detected`);
     } else {
-        console.info(new Date().toISOString(), `[INFO]: Same game version ${latestVersion.version.VersionsName} detected`);
+        console.info(Temporal.Now.instant().toString(), `[INFO]: Same game version ${latestVersion.version.VersionsName} detected`);
     }
 
     const cache = new Map<number, DataFileStatus>();
@@ -167,7 +167,7 @@ export const executeTasks = async (tasks: Task[], isForce: boolean) => {
             key, fileDataIDs, localeFileDataIDs, handler,
         } = task;
 
-        console.info(new Date().toISOString(), `[INFO]: Executing task ${key}`);
+        console.info(Temporal.Now.instant().toString(), `[INFO]: Executing task ${key}`);
 
         const fileDatas = await Promise.all(fileDataIDs.map(
             (fileDataID) => getDataFileStatus(
@@ -188,7 +188,7 @@ export const executeTasks = async (tasks: Task[], isForce: boolean) => {
         ));
 
         if (forceTasks.includes(task)) {
-            console.info(new Date().toISOString(), `[INFO]: Task ${key} is scheduled for execution`);
+            console.info(Temporal.Now.instant().toString(), `[INFO]: Task ${key} is scheduled for execution`);
 
             const content = await handler(
                 fileDatas.map((data) => data.parser),
@@ -197,7 +197,7 @@ export const executeTasks = async (tasks: Task[], isForce: boolean) => {
 
             updateAutoGenerated(key, content);
         } else if (fileDatas.some((data) => data.status === 'updated') || localeFileDatas.some((data) => data.status === 'updated')) {
-            console.info(new Date().toISOString(), `[INFO]: Task ${key} has updated files`);
+            console.info(Temporal.Now.instant().toString(), `[INFO]: Task ${key} has updated files`);
 
             const content = await handler(
                 fileDatas.map((data) => data.parser),
@@ -206,7 +206,7 @@ export const executeTasks = async (tasks: Task[], isForce: boolean) => {
 
             updateAutoGenerated(key, content);
         } else {
-            console.info(new Date().toISOString(), `[INFO]: Task ${key} has no updated files`);
+            console.info(Temporal.Now.instant().toString(), `[INFO]: Task ${key} has no updated files`);
         }
     });
 
