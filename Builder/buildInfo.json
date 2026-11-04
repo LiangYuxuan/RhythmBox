@@ -34,6 +34,10 @@
             [
                 "ProfessionKnowledgeItem",
                 1
+            ],
+            [
+                "QuickMacroHoliday",
+                1
             ]
         ]
     },
@@ -1588,6 +1592,14 @@
                             "keyName": "fc852d42866ce038"
                         }
                     ]
+                }
+            ],
+            [
+                996357,
+                {
+                    "cKey": "07002d5284367aba77f97e28cfa1976a",
+                    "type": "full",
+                    "blocks": []
                 }
             ]
         ]
