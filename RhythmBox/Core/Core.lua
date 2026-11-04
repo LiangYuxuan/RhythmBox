@@ -23,6 +23,10 @@ R.playerName = UnitName('player')
 R.playerRealm = GetRealmName()
 R.playerFullName = R.playerName .. '-' .. R.playerRealm
 R.playerLevel = UnitLevel('player')
+R.playerInterfaceVersion = select(4, GetBuildInfo())
+R.playerInterfaceVersionMajor = math.floor(R.playerInterfaceVersion / 10000)
+R.playerInterfaceVersionMinor = math.floor(math.fmod(R.playerInterfaceVersion, 10000) / 100)
+R.playerInterfaceVersionPatch = math.fmod(R.playerInterfaceVersion, 100)
 R.playerExpansionLevel = GetExpansionLevel()
 R.playerExpansionLevelMax = GetMaxLevelForExpansionLevel(R.playerExpansionLevel)
 ---@type string, string
