@@ -332,6 +332,43 @@ local function ItemDisplayFunc(button)
     end
 end
 
+---@class QuickMacroHolidayTimetableDate
+---@field year number
+---@field month number
+---@field day number
+---@field hour number
+---@field minute number
+
+---@class QuickMacroHolidayTimetable
+---@field startDate QuickMacroHolidayTimetableDate
+---@field endDate QuickMacroHolidayTimetableDate
+
+---@param checkTime QuickMacroHolidayTimetableDate
+---@param now osdate
+---@return boolean
+local function IsTimePassed(checkTime, now)
+    if now.year > checkTime.year then
+        return true
+    elseif now.year == checkTime.year then
+        if now.month > checkTime.month then
+            return true
+        elseif now.month == checkTime.month then
+            if now.day > checkTime.day then
+                return true
+            elseif now.day == checkTime.day then
+                if now.hour > checkTime.hour then
+                    return true
+                elseif now.hour == checkTime.hour then
+                    if now.min >= checkTime.minute then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
 ---@type table<string, QuickMacroData>
 QM.MacroButtons = {}
 
@@ -348,6 +385,7 @@ QM.MacroButtons = {}
 ---@field shift number?
 ---@field alt number?
 ---@field list number[]
+---@field dateHallowsEnd QuickMacroHolidayTimetable
 ---@field updateFunc fun(button: QuickMacroButtonMount, data: self, inCombat: boolean): boolean
 ---@field displayFunc fun(button: QuickMacroButtonMount, data: self): nil
 ---@field clickFunc fun(button: QuickMacroButtonMount, button: string, down: boolean): nil
@@ -427,27 +465,9 @@ QM.MacroButtons.RandomMount = {
             button.noneIconID = nil
         else
             local timestamp = GetServerTime()
+            ---@type osdate
             local timeData = date('*t', timestamp)
-            local duringHallowsEnd = (
-                (
-                    timeData.year == 2024 and (
-                        (timeData.month == 10 and ((timeData.day > 25) or (timeData.day == 25 and timeData.hour >= 10))) or
-                        (timeData.month == 11 and ((timeData.day < 8) or (timeData.day == 8 and timeData.hour < 11)))
-                    )
-                ) or
-                (
-                    timeData.year == 2026 and (
-                        (timeData.month == 10 and ((timeData.day > 19) or (timeData.day == 19 and timeData.hour >= 10))) or
-                        (timeData.month == 11 and ((timeData.day < 2) or (timeData.day == 2 and timeData.hour < 11)))
-                    )
-                ) or
-                (
-                    timeData.year > 2024 and (
-                        (timeData.month == 10 and ((timeData.day > 18) or (timeData.day == 18 and timeData.hour >= 10))) or
-                        (timeData.month == 11 and ((timeData.day < 1) or (timeData.day == 1 and timeData.hour < 11)))
-                    )
-                )
-            )
+            local duringHallowsEnd = IsTimePassed(data.dateHallowsEnd.startDate, timeData) and not IsTimePassed(data.dateHallowsEnd.endDate, timeData)
             local name, spellID, iconID, _, _, _, _, _, _, _, isCollected = C_MountJournal_GetMountInfoByID(1799) -- Eve's Ghastly Rider
 
             if duringHallowsEnd and isCollected then
