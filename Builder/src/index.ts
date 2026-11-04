@@ -5,6 +5,7 @@ import KnowledgeItem from './modules/Profession/KnowledgeItem.ts';
 import Consumables from './modules/QuickMacro/Consumables.ts';
 import CorpseToy from './modules/QuickMacro/CorpseToy.ts';
 import Hearthstone from './modules/QuickMacro/Hearthstone.ts';
+import Holiday from './modules/QuickMacro/Holiday.ts';
 import TempEnchantment from './modules/QuickMacro/TempEnchantment.ts';
 import { executeTasks } from './task.ts';
 
@@ -18,6 +19,7 @@ const tasks: Task[] = [
     Consumables,
     CorpseToy,
     Hearthstone,
+    Holiday,
     TempEnchantment,
 ];
 

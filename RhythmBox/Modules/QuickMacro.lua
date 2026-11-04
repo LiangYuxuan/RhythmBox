@@ -546,6 +546,10 @@ QM.MacroButtons.RandomMount = {
         382, -- X-53 Touring Rocket
         407, -- Sandstone Drake
     },
+    dateHallowsEnd = {
+        ---AUTO_GENERATED LEADING QuickMacroHolidayHallowsEnd
+        ---AUTO_GENERATED TAILING QuickMacroHolidayHallowsEnd
+    },
 }
 
 ---@class QuickMacroDataHearthstone: QuickMacroData
