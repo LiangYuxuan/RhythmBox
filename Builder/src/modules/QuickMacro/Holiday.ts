@@ -24,7 +24,7 @@ const getTimetableOutput = ({ startDate, endDate }: HolidayTimetable) => {
     text += `    day = ${endDate.day.toString()},\n`;
     text += `    hour = ${endDate.hour.toString()},\n`;
     text += `    minute = ${endDate.minute.toString()},\n`;
-    text += '},\n';
+    text += '},';
 
     return text;
 };
@@ -32,16 +32,16 @@ const getTimetableOutput = ({ startDate, endDate }: HolidayTimetable) => {
 const getClosestTimetable = (
     duration: number[],
     date: number[],
-    calendarFlag: number[],
+    calendarFlags: number[],
 ): HolidayTimetable | undefined => {
     const now = Temporal.Now.zonedDateTimeISO('Asia/Shanghai');
 
     let durationDelayHour = 0;
     let durationActiveHour = 0;
     for (let i = 0; i < duration.length; i += 1) {
-        if (calendarFlag[i] === 0) {
+        if (calendarFlags[i] === 0) {
             durationDelayHour += duration[i];
-        } else if (calendarFlag[i] === 3) {
+        } else if (calendarFlags[i] === 3) {
             durationActiveHour = duration[i];
             break;
         }
@@ -65,7 +65,7 @@ const getClosestTimetable = (
         // eslint-disable-next-line no-bitwise
         const monthIndex = (curr >> 20) & 0xf;
         // eslint-disable-next-line no-bitwise
-        const year = (curr >> 24) & 0x3f;
+        const year = (curr >> 24) & 0x1f;
 
         if (
             minute === 0x3f
@@ -78,7 +78,7 @@ const getClosestTimetable = (
 
         let startDate = Temporal.ZonedDateTime.from({
             timeZone: 'Asia/Shanghai',
-            year: year === 0x3f ? now.year : (2000 + year),
+            year: year === 0x1f ? now.year : (2000 + year),
             month: monthIndex + 1,
             day: dayIndex + 1,
             hour,
@@ -86,7 +86,7 @@ const getClosestTimetable = (
         }).add(durationDelay);
         let endDate = startDate.add(durationActive);
 
-        if (year === 0x3f && Temporal.ZonedDateTime.compare(endDate, now) === -1) {
+        if (year === 0x1f && Temporal.ZonedDateTime.compare(endDate, now) === -1) {
             startDate = Temporal.ZonedDateTime.from({
                 timeZone: 'Asia/Shanghai',
                 year: now.year + 1,
@@ -149,24 +149,25 @@ const task: Task = {
                 const flags = row?.Flags as number;
                 const duration = row?.Duration as number[];
                 const date = row?.Date as number[];
-                const calendarFlag = row?.CalendarFlag as number[];
+                const calendarFlags = row?.CalendarFlags as number[];
 
                 if (
                     (region !== 0 && region !== 24) // global or asia regions
                     || holidayNameID !== 16 // Hallow's End
                     // eslint-disable-next-line no-bitwise
-                    || (flags & 0x2) === 0 // should show in calendar
+                    || (flags & 0x2) !== 0 // should show in calendar
                 ) {
                     return undefined;
                 }
 
-                return getClosestTimetable(duration, date, calendarFlag);
-            });
+                return getClosestTimetable(duration, date, calendarFlags);
+            })
+            .filter((timetable): timetable is HolidayTimetable => timetable !== undefined);
 
+        assert(hallowsEndTimetables.length > 0, 'Failed to find Hallow\'s End');
         assert(hallowsEndTimetables.length < 2, 'Multiple Hallow\'s End entries found');
 
         const hallowsEndTimetable = hallowsEndTimetables[0];
-        assert(hallowsEndTimetable, 'Failed to find Hallow\'s End');
 
         return new Map<string, string>([
             [
