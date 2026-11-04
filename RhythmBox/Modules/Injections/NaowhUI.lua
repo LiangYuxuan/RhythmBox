@@ -21,6 +21,12 @@ local C_EditMode_SetActiveLayout = C_EditMode.SetActiveLayout
 local Enum_EditModePresetLayoutsMeta_NumValues = Enum.EditModePresetLayoutsMeta.NumValues
 local Enum_EditModeSystem_EncounterBar = Enum.EditModeSystem.EncounterBar
 
+---@class NaowhUIInstallerCatalog
+---@field ClassKeys table<string, string>
+
+---@class NaowhUIInstaller
+---@field Catalog NaowhUIInstallerCatalog
+
 ---@class ExBoss.AppearanceProfiles
 ---@field ActivateProfile fun(self: self, profileID: string, automatic: boolean?): boolean, string?
 ---@field IsProfileNameAvailable fun(self: self, name: string, exceptID: string?): boolean
@@ -101,11 +107,15 @@ local Enum_EditModeSystem_EncounterBar = Enum.EditModeSystem.EncounterBar
 ---@class EllesmereUIDB.Profile.Addons.DamageMeters
 ---@field spellHistory { iconEnabled: boolean }
 
+---@class EllesmereUIDB.Profile.Addons.QuestTracker
+---@field wowheadQuestLinks boolean
+
 ---@class EllesmereUIDB.Profile.Addons
 ---@field EllesmereUIActionBars EllesmereUIDB.Profile.Addons.ActionBars
 ---@field EllesmereUIBags EllesmereUIDB.Profile.Addons.Bags
 ---@field EllesmereUIChat { chat: EllesmereUIDB.Profile.Addons.Chat }
 ---@field EllesmereUIDamageMeters { dm: EllesmereUIDB.Profile.Addons.DamageMeters }
+---@field EllesmereUIQuestTracker { questTracker: EllesmereUIDB.Profile.Addons.QuestTracker }
 
 ---@class EllesmereUIDB.Profile.UnlockLayout.Anchor
 ---@field target string
@@ -373,10 +383,20 @@ function Module:UpdateEditMode(event, layoutInfo)
     end
 end
 
----@param ... any
+---@param addon string
 ---@return nil
 ---@diagnostic disable-next-line: unused-function
-function Module:Blizzard_CooldownViewer(...)
+function Module:Blizzard_CooldownViewer(addon)
+    ---@type table<string, string>
+    ---@diagnostic disable-next-line: undefined-field
+    local Data = (_G.NaowhUI)[1]:GetModule('Data')
+
+    ---@type NaowhUIInstaller
+    ---@diagnostic disable-next-line: undefined-field
+    local Installer = (_G.NaowhUI)[1]:GetModule('Installer')
+
+    local importData = Data[Installer.Catalog.ClassKeys[R.playerClass]]
+
     ---@type CooldownViewerLayoutManagerMixin
     local layoutManager = _G.CooldownViewerSettings:GetLayoutManager()
     local currentSpecTag = layoutManager:GetCurrentSpecTag()
@@ -384,8 +404,7 @@ function Module:Blizzard_CooldownViewer(...)
         layoutManager:RemoveLayout(layoutID)
     end
 
-    ---@type nil
-    local result = self.hooks[self.SE].Blizzard_CooldownViewer(...)
+    layoutManager:CreateLayoutsFromSerializedData(importData)
 
     local specNames = classSpecMap[R.playerClassID]
     for _, layout in layoutManager:EnumerateLayouts() --[[@as fun(): number, { layoutName: string }]] do
@@ -403,7 +422,7 @@ function Module:Blizzard_CooldownViewer(...)
 
     layoutManager:SaveLayouts()
 
-    return result
+    self.SE.CompleteSetup(addon)
 end
 
 ---@param _ string
@@ -502,6 +521,7 @@ function Module:TweakEUIProfile()
     Profile.addons.EllesmereUIChat.chat.timestampAll = true
     Profile.addons.EllesmereUIChat.chat.timestampFormat = '%H:%M:%S '
     Profile.addons.EllesmereUIDamageMeters.dm.spellHistory.iconEnabled = false
+    Profile.addons.EllesmereUIQuestTracker.questTracker.wowheadQuestLinks = true
 
     for _, data in ipairs(unlockModeDatas) do
         DB.unlockAnchors[data.key].side = data.side
@@ -651,7 +671,7 @@ function Module:OnEnable()
 end
 
 function Module:OnAddonLoad()
-    ---@type AceAddon-3.0
+    ---@type AceAddon-3.0 & { CompleteSetup: fun(addon: string) }
     ---@diagnostic disable-next-line: undefined-field
     self.SE = (_G.NaowhUI)[1]:GetModule('Setup')
 
