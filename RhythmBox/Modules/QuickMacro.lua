@@ -554,7 +554,22 @@ QM.MacroButtons.RandomMount = {
     },
     dateHallowsEnd = {
         ---AUTO_GENERATED LEADING QuickMacroHolidayHallowsEnd
-        -- DUMMY
+        -- 2027-10-19T10:00:00+08:00[Asia/Shanghai]
+        startDate = {
+            year = 2027,
+            month = 10,
+            day = 19,
+            hour = 10,
+            minute = 0,
+        },
+        -- 2027-11-02T11:00:00+08:00[Asia/Shanghai]
+        endDate = {
+            year = 2027,
+            month = 11,
+            day = 2,
+            hour = 11,
+            minute = 0,
+        },
         ---AUTO_GENERATED TAILING QuickMacroHolidayHallowsEnd
     },
 }
