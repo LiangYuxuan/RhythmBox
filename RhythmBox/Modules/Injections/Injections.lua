@@ -119,8 +119,8 @@ R:RegisterOptions(
 
 ---@param module AceAddon-3.0
 ---@param title string
----@param requiredAddons table<string, true>?
----@param optionalAddons table<string, true>?
+---@param requiredAddons string[]?
+---@param optionalAddons string[]?
 function RI:Register(module, title, requiredAddons, optionalAddons)
     local moduleName = module:GetName()
     P.Injections[moduleName] = true
@@ -133,12 +133,12 @@ function RI:Register(module, title, requiredAddons, optionalAddons)
     ---@type table<string, true>
     local addons = {}
     if requiredAddons then
-        for addon in pairs(requiredAddons) do
+        for _, addon in ipairs(requiredAddons) do
             addons[addon] = true
         end
     end
     if optionalAddons then
-        for addon in pairs(optionalAddons) do
+        for _, addon in ipairs(optionalAddons) do
             if R:IsAddOnEnabled(addon) then
                 addons[addon] = true
             end
