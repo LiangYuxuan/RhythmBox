@@ -436,6 +436,12 @@ QM.MacroButtons.RandomMount = {
                     )
                 ) or
                 (
+                    timeData.year == 2026 and (
+                        (timeData.month == 10 and ((timeData.day > 19) or (timeData.day == 19 and timeData.hour >= 10))) or
+                        (timeData.month == 11 and ((timeData.day < 2) or (timeData.day == 2 and timeData.hour < 11)))
+                    )
+                ) or
+                (
                     timeData.year > 2024 and (
                         (timeData.month == 10 and ((timeData.day > 18) or (timeData.day == 18 and timeData.hour >= 10))) or
                         (timeData.month == 11 and ((timeData.day < 1) or (timeData.day == 1 and timeData.hour < 11)))
@@ -548,6 +554,7 @@ QM.MacroButtons.RandomMount = {
     },
     dateHallowsEnd = {
         ---AUTO_GENERATED LEADING QuickMacroHolidayHallowsEnd
+        -- DUMMY
         ---AUTO_GENERATED TAILING QuickMacroHolidayHallowsEnd
     },
 }
